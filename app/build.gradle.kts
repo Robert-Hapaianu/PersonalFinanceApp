@@ -50,6 +50,7 @@ dependencies {
     implementation("com.mikhaellopez:circularprogressbar:3.1.0")
     implementation("com.github.Dimezis:BlurView:version-2.0.3")
     implementation("de.hdodenhof:circleimageview:3.1.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     //Lifecycle
     implementation("androidx.lifecycle:lifecycle-extensions:2.2.0")

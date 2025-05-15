@@ -4,6 +4,9 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,14 +16,19 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.WindowManager
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.project1912.Adapter.ExpenseListAdapter
+import com.example.project1912.Domain.ExpenseDomain
 import com.example.project1912.ViewModel.MainViewModel
 import com.example.project1912.databinding.ActivityMainBinding
 import eightbitlab.com.blurview.RenderScriptBlur
@@ -33,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private val PROFILE_IMAGE_URI = "profile_image_uri"
     private val USER_NAME = "user_name"
     private val USER_EMAIL = "user_email"
+    private lateinit var expenseAdapter: ExpenseListAdapter
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -60,6 +69,19 @@ class MainActivity : AppCompatActivity() {
         setupEditButtons()
         loadSavedProfileImage()
         loadSavedUserInfo()
+
+        // Ensure we start at the top of the screen
+        binding.scrollView2.post {
+            binding.scrollView2.scrollTo(0, 0)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Reset scroll position when returning to the activity
+        binding.scrollView2.post {
+            binding.scrollView2.scrollTo(0, 0)
+        }
     }
 
     private fun setupEditButtons() {
@@ -227,7 +249,151 @@ class MainActivity : AppCompatActivity() {
 
     private fun initRecyclerview() {
         binding.view1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        binding.view1.adapter = ExpenseListAdapter(mainViewModel.loadData())
-        binding.view1.isNestedScrollingEnabled = false
+        // Load saved expenses or use default data if none exists
+        val savedExpenses = ExpenseListAdapter.loadSavedExpenses(this)
+        expenseAdapter = if (savedExpenses.isNotEmpty()) {
+            ExpenseListAdapter(savedExpenses)
+        } else {
+            ExpenseListAdapter(mainViewModel.loadData())
+        }
+        binding.view1.adapter = expenseAdapter
+        binding.view1.isNestedScrollingEnabled = true // Enable nested scrolling
+
+        setupAddExpenseFab()
+
+        // Add swipe-to-delete functionality
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                expenseAdapter.removeItem(position)
+                expenseAdapter.saveExpenses() // Save changes after deletion
+            }
+
+            override fun onChildDraw(
+                c: Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float,
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+
+                val itemView = viewHolder.itemView
+                val background = ColorDrawable(Color.RED)
+
+                if (dX > 0) { // Swiping to the right
+                    background.setBounds(
+                        itemView.left,
+                        itemView.top,
+                        itemView.left + dX.toInt(),
+                        itemView.bottom
+                    )
+                } else if (dX < 0) { // Swiping to the left
+                    background.setBounds(
+                        itemView.right + dX.toInt(),
+                        itemView.top,
+                        itemView.right,
+                        itemView.bottom
+                    )
+                } else {
+                    background.setBounds(0, 0, 0, 0)
+                }
+
+                background.draw(c)
+            }
+        })
+
+        itemTouchHelper.attachToRecyclerView(binding.view1)
+    }
+
+    private fun setupAddExpenseFab() {
+        binding.addExpenseFab.setOnClickListener {
+            showAddExpenseDialog()
+        }
+    }
+
+    private fun showAddExpenseDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(50, 30, 50, 30)
+        }
+
+        val activityLabel = TextView(this).apply {
+            text = "Activity"
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(activityLabel)
+
+        val activityEdit = EditText(this).apply {
+            hint = "Enter activity name"
+        }
+        layout.addView(activityEdit)
+
+        val spacing = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                20
+            )
+        }
+        layout.addView(spacing)
+
+        val priceLabel = TextView(this).apply {
+            text = "Price"
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(priceLabel)
+
+        val priceEdit = EditText(this).apply {
+            hint = "Enter price"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or 
+                       android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        layout.addView(priceEdit)
+
+        AlertDialog.Builder(this)
+            .setTitle("Add New Expense")
+            .setView(layout)
+            .setPositiveButton("Add") { _, _ ->
+                val title = activityEdit.text.toString()
+                val price = priceEdit.text.toString().toDoubleOrNull()
+
+                if (title.isNotEmpty() && price != null) {
+                    val currentTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                        .format(java.util.Date())
+                    val currentDate = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                        .format(java.util.Date())
+                    
+                    val newExpense = ExpenseDomain(
+                        title = title,
+                        price = price,
+                        pic = "restaurant",  // Default icon for new entries
+                        time = "$currentTime • $currentDate"
+                    )
+                    
+                    expenseAdapter.addItem(newExpense)
+                    expenseAdapter.saveExpenses()
+                } else {
+                    Toast.makeText(this, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+
+        // Show keyboard automatically
+        activityEdit.requestFocus()
     }
 }
