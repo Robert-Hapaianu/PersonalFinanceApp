@@ -11,12 +11,14 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.text.InputFilter
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,11 +29,15 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.project1912.Adapter.CardAdapter
 import com.example.project1912.Adapter.ExpenseListAdapter
+import com.example.project1912.Domain.CardDomain
 import com.example.project1912.Domain.ExpenseDomain
 import com.example.project1912.ViewModel.MainViewModel
 import com.example.project1912.databinding.ActivityMainBinding
 import eightbitlab.com.blurview.RenderScriptBlur
+import android.widget.ArrayAdapter
+import android.text.Editable
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
@@ -42,6 +48,15 @@ class MainActivity : AppCompatActivity() {
     private val USER_NAME = "user_name"
     private val USER_EMAIL = "user_email"
     private lateinit var expenseAdapter: ExpenseListAdapter
+    private lateinit var cardAdapter: CardAdapter
+    private val cards = mutableListOf(
+        CardDomain(
+            cardNumber = "1234 5678 9012 3456",
+            expiryDate = "03/07",
+            cardType = "visa",
+            balance = 23451.58
+        )
+    )
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -63,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         initRecyclerview()
+        initCardView()
         setBlueEffect()
         setVariable()
         setupProfileImage()
@@ -221,14 +237,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setVariable() {
-        binding.cardBtn.setOnClickListener {
-            startActivity(
-                Intent(
-                    this,
-                    ReportActivity::class.java
-                )
-            )
-        }
+        // Card click handling is now done in the CardAdapter
     }
 
     private fun setBlueEffect() {
@@ -395,5 +404,170 @@ class MainActivity : AppCompatActivity() {
 
         // Show keyboard automatically
         activityEdit.requestFocus()
+    }
+
+    private fun initCardView() {
+        // Load saved cards or use default data if none exists
+        val savedCards = CardAdapter.loadSavedCards(this)
+        cardAdapter = CardAdapter(savedCards, this)
+        binding.cardsRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = cardAdapter
+        }
+        
+        binding.addCardBtn.setOnClickListener {
+            showAddCardDialog()
+        }
+    }
+
+    private fun showAddCardDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(50, 30, 50, 30)
+        }
+
+        val cardNumberLabel = TextView(this).apply {
+            text = "Card Number"
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(cardNumberLabel)
+
+        val cardNumberEdit = EditText(this).apply {
+            hint = "Enter card number"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            importantForAutofill = android.view.View.IMPORTANT_FOR_AUTOFILL_NO
+            filters = arrayOf(InputFilter.LengthFilter(19)) // 16 digits + 3 spaces
+            
+            // Add text change listener to format card number
+            addTextChangedListener(object : android.text.TextWatcher {
+                private var isFormatting = false
+                
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                
+                override fun afterTextChanged(s: Editable?) {
+                    if (isFormatting) return
+                    isFormatting = true
+                    
+                    val text = s.toString().replace(" ", "")
+                    val formatted = StringBuilder()
+                    
+                    for (i in text.indices) {
+                        if (i > 0 && i % 4 == 0) {
+                            formatted.append(" ")
+                        }
+                        formatted.append(text[i])
+                    }
+                    
+                    s?.replace(0, s.length, formatted.toString())
+                    isFormatting = false
+                }
+            })
+        }
+        layout.addView(cardNumberEdit)
+
+        val spacing1 = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                20
+            )
+        }
+        layout.addView(spacing1)
+
+        val expiryLabel = TextView(this).apply {
+            text = "Expiry Date (MM/YY)"
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(expiryLabel)
+
+        val expiryEdit = EditText(this).apply {
+            hint = "MM/YY"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            importantForAutofill = android.view.View.IMPORTANT_FOR_AUTOFILL_NO
+            filters = arrayOf(InputFilter.LengthFilter(5)) // MM/YY format
+            
+            // Add text change listener to format expiry date
+            addTextChangedListener(object : android.text.TextWatcher {
+                private var isFormatting = false
+                
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                
+                override fun afterTextChanged(s: Editable?) {
+                    if (isFormatting) return
+                    isFormatting = true
+                    
+                    val text = s.toString().replace("/", "")
+                    if (text.length > 2) {
+                        val formatted = "${text.substring(0, 2)}/${text.substring(2)}"
+                        s?.clear()
+                        s?.append(formatted)
+                    } else if (text.length == 2) {
+                        s?.clear()
+                        s?.append("$text/")
+                    }
+                    
+                    isFormatting = false
+                }
+            })
+        }
+        layout.addView(expiryEdit)
+
+        val spacing2 = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                20
+            )
+        }
+        layout.addView(spacing2)
+
+        val bankLabel = TextView(this).apply {
+            text = "Bank"
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(bankLabel)
+
+        val bankSpinner = Spinner(this).apply {
+            val adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_item,
+                arrayOf("BRD")
+            )
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            this.adapter = adapter
+        }
+        layout.addView(bankSpinner)
+
+        AlertDialog.Builder(this)
+            .setTitle("Add New Card")
+            .setView(layout)
+            .setPositiveButton("Add") { _, _ ->
+                val cardNumber = cardNumberEdit.text.toString().replace(" ", "")
+                val expiryDate = expiryEdit.text.toString()
+                val bank = bankSpinner.selectedItem.toString()
+
+                if (cardNumber.length == 16 && expiryDate.matches(Regex("\\d{2}/\\d{2}"))) {
+                    // Create and add the card domain
+                    val newCard = CardDomain(
+                        cardNumber = cardNumber.chunked(4).joinToString(" "),
+                        expiryDate = expiryDate,
+                        cardType = bank,
+                        balance = 0.0
+                    )
+                    cardAdapter.addCard(newCard)
+                } else {
+                    Toast.makeText(this, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }
