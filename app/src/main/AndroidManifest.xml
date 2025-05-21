@@ -18,6 +18,20 @@
         android:theme="@style/Theme.Project1912"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        
+        <activity
+            android:name=".Activity.BankAuthCallbackActivity"
+            android:exported="true">
+            <intent-filter android:label="Bank Auth Callback">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="myapp"
+                    android:host="callback" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".Activity.ReportActivity"
             android:exported="false" />

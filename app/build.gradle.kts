@@ -52,6 +52,9 @@ dependencies {
     implementation("de.hdodenhof:circleimageview:3.1.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
+    //Security
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     //Lifecycle
     implementation("androidx.lifecycle:lifecycle-extensions:2.2.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")

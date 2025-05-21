@@ -33,6 +33,7 @@ import com.example.project1912.Adapter.CardAdapter
 import com.example.project1912.Adapter.ExpenseListAdapter
 import com.example.project1912.Domain.CardDomain
 import com.example.project1912.Domain.ExpenseDomain
+import com.example.project1912.Utils.SecureTokenStorage
 import com.example.project1912.ViewModel.MainViewModel
 import com.example.project1912.databinding.ActivityMainBinding
 import eightbitlab.com.blurview.RenderScriptBlur
@@ -64,6 +65,7 @@ class MainActivity : AppCompatActivity() {
             balance = 23451.58
         )
     )
+    private lateinit var secureTokenStorage: SecureTokenStorage
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -92,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         setupEditButtons()
         loadSavedProfileImage()
         loadSavedUserInfo()
+        secureTokenStorage = SecureTokenStorage(this)
 
         // Ensure we start at the top of the screen
         binding.scrollView2.post {
@@ -583,17 +586,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun generateAccessToken() {
         CoroutineScope(Dispatchers.IO).launch {
+            var connection: HttpURLConnection? = null
             try {
                 val url = URL("https://bankaccountdata.gocardless.com/api/v2/token/new/")
-                val connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
                 connection.doOutput = true
+                connection.connectTimeout = 15000
+                connection.readTimeout = 15000
 
                 val requestBody = JSONObject().apply {
                     put("secret_id", "7d4b9dc9-7d40-48b8-85c2-b3c0371d85ff")
                     put("secret_key", "8f289965b85183a5d5dc1357595f7e3ef0fb43bc55cb823acdad633084193c3439651adbbff7411b4473a6bb84188f2f44584107d2818177fa16c0ebce6105b6")
                 }.toString()
+
+                println("Request Body: $requestBody")
 
                 connection.outputStream.use { os ->
                     os.write(requestBody.toByteArray())
@@ -601,27 +609,131 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val responseCode = connection.responseCode
+                println("Token Response Code: $responseCode")
+
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+                    println("Token Response: $response")
                     
+                    val jsonResponse = JSONObject(response)
                     val accessToken = jsonResponse.getString("access")
                     val refreshToken = jsonResponse.getString("refresh")
                     
-                    withContext(Dispatchers.Main) {
-                        println("Access Token: $accessToken")
-                        println("Refresh Token: $refreshToken")
-                        Toast.makeText(this@MainActivity, "Tokens generated successfully", Toast.LENGTH_SHORT).show()
-                    }
+                    secureTokenStorage.saveAccessToken(accessToken)
+                    secureTokenStorage.saveRefreshToken(refreshToken)
+                    
+                    // Create requisition after getting the access token
+                    createRequisition(accessToken)
                 } else {
+                    val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                    println("Token Error Response: $errorResponse")
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "Failed to generate tokens", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "Failed to generate tokens: $responseCode - $errorResponse", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
+                println("Token Error: ${e.message}")
+                e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                connection?.disconnect()
+            }
+        }
+    }
+
+    private fun createRequisition(accessToken: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            var connection: HttpURLConnection? = null
+            try {
+                val url = URL("https://bankaccountdata.gocardless.com/api/v2/requisitions/")
+                connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Authorization", "Bearer $accessToken")
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.doOutput = true
+                connection.connectTimeout = 15000
+                connection.readTimeout = 15000
+
+                val requestBody = JSONObject().apply {
+                    put("redirect", "myapp://callback")
+                    put("institution_id", "BRD_GROUPE_SOCIETE_GENERALE_RO_BRDEROBU")
+                    put("reference", java.util.UUID.randomUUID().toString())
+                }.toString()
+
+                println("Requisition Request URL: ${url.toString()}")
+                println("Requisition Request Headers: ${connection.requestProperties}")
+                println("Requisition Request Body: $requestBody")
+
+                connection.outputStream.use { os ->
+                    os.write(requestBody.toByteArray())
+                    os.flush()
+                }
+
+                val responseCode = connection.responseCode
+                println("Requisition Response Code: $responseCode")
+
+                val responseBody = try {
+                    if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
+                        connection.inputStream.bufferedReader().use { it.readText() }
+                    } else {
+                        connection.errorStream?.bufferedReader()?.use { it.readText() } ?: "No error message available"
+                    }
+                } catch (e: Exception) {
+                    "Error reading response: ${e.message}"
+                }
+
+                println("Requisition Response Body: $responseBody")
+
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
+                    try {
+                        val jsonResponse = JSONObject(responseBody)
+                        val requisitionId = jsonResponse.getString("id")
+                        val link = jsonResponse.getString("link")
+                        
+                        secureTokenStorage.saveRequisitionId(requisitionId)
+                        
+                        withContext(Dispatchers.Main) {
+                            println("Requisition ID: $requisitionId")
+                            println("Authorization Link: $link")
+                            
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse(link)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                }
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                println("Browser Error: ${e.message}")
+                                e.printStackTrace()
+                                Toast.makeText(this@MainActivity, "Could not open browser: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("JSON Parsing Error: ${e.message}")
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "Error parsing response: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        val errorMessage = "Failed to create requisition: $responseCode - $responseBody"
+                        println(errorMessage)
+                        Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                println("Requisition Error: ${e.message}")
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                connection?.disconnect()
             }
         }
     }
