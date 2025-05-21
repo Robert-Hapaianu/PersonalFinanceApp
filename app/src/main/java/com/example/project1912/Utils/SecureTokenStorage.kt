@@ -40,4 +40,12 @@ class SecureTokenStorage(context: Context) {
     fun getRequisitionId(): String? {
         return sharedPreferences.getString("requisition_id", null)
     }
+
+    fun saveAccountId(accountId: String) {
+        sharedPreferences.edit().putString("account_id", accountId).apply()
+    }
+
+    fun getAccountId(): String? {
+        return sharedPreferences.getString("account_id", null)
+    }
 } 

@@ -46,6 +46,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlinx.coroutines.delay
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
@@ -696,9 +697,6 @@ class MainActivity : AppCompatActivity() {
                         secureTokenStorage.saveRequisitionId(requisitionId)
                         
                         withContext(Dispatchers.Main) {
-                            println("Requisition ID: $requisitionId")
-                            println("Authorization Link: $link")
-                            
                             try {
                                 val intent = Intent(Intent.ACTION_VIEW).apply {
                                     data = Uri.parse(link)
@@ -711,6 +709,16 @@ class MainActivity : AppCompatActivity() {
                                 e.printStackTrace()
                                 Toast.makeText(this@MainActivity, "Could not open browser: ${e.message}", Toast.LENGTH_LONG).show()
                             }
+                        }
+
+                        // Wait for a short time to ensure the user has completed the bank authentication
+                        delay(5000)
+
+                        // Get the requisition details
+                        val requisitionDetails = getRequisitionDetails(accessToken, requisitionId)
+                        if (requisitionDetails != null) {
+                            // Get the account balance
+                            getAccountBalance(accessToken, requisitionDetails)
                         }
                     } catch (e: Exception) {
                         println("JSON Parsing Error: ${e.message}")
@@ -735,6 +743,104 @@ class MainActivity : AppCompatActivity() {
             } finally {
                 connection?.disconnect()
             }
+        }
+    }
+
+    private suspend fun getRequisitionDetails(accessToken: String, requisitionId: String): String? {
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL("https://bankaccountdata.gocardless.com/api/v2/requisitions/$requisitionId/")
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Authorization", "Bearer $accessToken")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+
+            val responseCode = connection.responseCode
+            println("Requisition Details Response Code: $responseCode")
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
+                println("Requisition Details Response: $responseBody")
+
+                val jsonResponse = JSONObject(responseBody)
+                val status = jsonResponse.getString("status")
+                println("Requisition Status: $status")
+
+                if (status == "LN") {
+                    val accountsArray = jsonResponse.getJSONArray("accounts")
+                    
+                    if (accountsArray.length() > 0) {
+                        val accountId = accountsArray.getString(0)
+                        secureTokenStorage.saveAccountId(accountId)
+                        return accountId
+                    }
+                } else {
+                    println("Waiting for requisition status to be LN. Current status: $status")
+                    // Wait for 5 seconds before checking again
+                    delay(5000)
+                    return getRequisitionDetails(accessToken, requisitionId)
+                }
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                println("Requisition Details Error: $errorResponse")
+            }
+        } catch (e: Exception) {
+            println("Requisition Details Error: ${e.message}")
+            e.printStackTrace()
+        } finally {
+            connection?.disconnect()
+        }
+        return null
+    }
+
+    private suspend fun getAccountBalance(accessToken: String, accountId: String) {
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL("https://bankaccountdata.gocardless.com/api/v2/accounts/$accountId/balances/")
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Authorization", "Bearer $accessToken")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+
+            val responseCode = connection.responseCode
+            println("Account Balance Response Code: $responseCode")
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
+                println("Account Balance Response: $responseBody")
+
+                val jsonResponse = JSONObject(responseBody)
+                val balancesArray = jsonResponse.getJSONArray("balances")
+                
+                if (balancesArray.length() > 0) {
+                    val firstBalance = balancesArray.getJSONObject(0)
+                    val balanceAmount = firstBalance.getJSONObject("balanceAmount")
+                    val amount = balanceAmount.getString("amount")
+                    
+                    // Format the amount with 2 decimal places
+                    val formattedAmount = String.format("%.2f", amount.toDouble())
+                    
+                    // Update the balance in Report Activity
+                    withContext(Dispatchers.Main) {
+                        val intent = Intent(this@MainActivity, ReportActivity::class.java).apply {
+                            putExtra("BALANCE", "$formattedAmount lei")
+                        }
+                        startActivity(intent)
+                    }
+                }
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                println("Account Balance Error: $errorResponse")
+            }
+        } catch (e: Exception) {
+            println("Account Balance Error: ${e.message}")
+            e.printStackTrace()
+        } finally {
+            connection?.disconnect()
         }
     }
 }

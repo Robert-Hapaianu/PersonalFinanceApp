@@ -18,6 +18,11 @@ class ReportActivity : AppCompatActivity() {
         binding = ActivityReportBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Get the balance from the intent
+        val balance = intent.getStringExtra("BALANCE")
+        if (balance != null) {
+            binding.textView11.text = balance
+        }
 
         window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
