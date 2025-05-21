@@ -38,6 +38,13 @@ import com.example.project1912.databinding.ActivityMainBinding
 import eightbitlab.com.blurview.RenderScriptBlur
 import android.widget.ArrayAdapter
 import android.text.Editable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
@@ -563,11 +570,59 @@ class MainActivity : AppCompatActivity() {
                         balance = 0.0
                     )
                     cardAdapter.addCard(newCard)
+                    
+                    // Generate access token
+                    generateAccessToken()
                 } else {
                     Toast.makeText(this, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun generateAccessToken() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL("https://bankaccountdata.gocardless.com/api/v2/token/new/")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+
+                val requestBody = JSONObject().apply {
+                    put("secret_id", "7d4b9dc9-7d40-48b8-85c2-b3c0371d85ff")
+                    put("secret_key", "8f289965b85183a5d5dc1357595f7e3ef0fb43bc55cb823acdad633084193c3439651adbbff7411b4473a6bb84188f2f44584107d2818177fa16c0ebce6105b6")
+                }.toString()
+
+                connection.outputStream.use { os ->
+                    os.write(requestBody.toByteArray())
+                    os.flush()
+                }
+
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val response = connection.inputStream.bufferedReader().use { it.readText() }
+                    val jsonResponse = JSONObject(response)
+                    
+                    val accessToken = jsonResponse.getString("access")
+                    val refreshToken = jsonResponse.getString("refresh")
+                    
+                    withContext(Dispatchers.Main) {
+                        println("Access Token: $accessToken")
+                        println("Refresh Token: $refreshToken")
+                        Toast.makeText(this@MainActivity, "Tokens generated successfully", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "Failed to generate tokens", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 }
