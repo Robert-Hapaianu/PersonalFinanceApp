@@ -48,4 +48,12 @@ class SecureTokenStorage(context: Context) {
     fun getAccountId(): String? {
         return sharedPreferences.getString("account_id", null)
     }
+
+    fun saveBankBalance(balance: String) {
+        sharedPreferences.edit().putString("bank_balance", balance).apply()
+    }
+
+    fun getBankBalance(): String? {
+        return sharedPreferences.getString("bank_balance", null)
+    }
 } 

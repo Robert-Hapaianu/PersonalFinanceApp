@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.project1912.Adapter.ReportListAdapter
 import com.example.project1912.ViewModel.MainViewModel
 import com.example.project1912.databinding.ActivityReportBinding
+import com.example.project1912.Utils.SecureTokenStorage
 
 class ReportActivity : AppCompatActivity() {
     lateinit var binding: ActivityReportBinding
@@ -18,8 +19,11 @@ class ReportActivity : AppCompatActivity() {
         binding = ActivityReportBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Get the balance from the intent
-        val balance = intent.getStringExtra("BALANCE")
+        // Initialize SecureTokenStorage
+        val secureTokenStorage = SecureTokenStorage(this)
+
+        // Get the balance from the intent or saved storage
+        val balance = intent.getStringExtra("BALANCE") ?: secureTokenStorage.getBankBalance()
         if (balance != null) {
             binding.textView11.text = balance
         }

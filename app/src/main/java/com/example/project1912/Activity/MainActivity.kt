@@ -823,11 +823,15 @@ class MainActivity : AppCompatActivity() {
                     
                     // Format the amount with 2 decimal places
                     val formattedAmount = String.format("%.2f", amount.toDouble())
+                    val balanceText = "$formattedAmount lei"
+                    
+                    // Save the balance
+                    secureTokenStorage.saveBankBalance(balanceText)
                     
                     // Update the balance in Report Activity
                     withContext(Dispatchers.Main) {
                         val intent = Intent(this@MainActivity, ReportActivity::class.java).apply {
-                            putExtra("BALANCE", "$formattedAmount lei")
+                            putExtra("BALANCE", balanceText)
                         }
                         startActivity(intent)
                     }
