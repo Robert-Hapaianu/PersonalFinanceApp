@@ -575,8 +575,8 @@ class MainActivity : AppCompatActivity() {
                     )
                     cardAdapter.addCard(newCard)
                     
-                    // Generate access token
-                    generateAccessToken()
+                    // Generate access token with the card ID
+                    generateAccessToken(newCard.cardNumber)
                 } else {
                     Toast.makeText(this, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
                 }
@@ -585,7 +585,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun generateAccessToken() {
+    private fun generateAccessToken(cardId: String) {
         CoroutineScope(Dispatchers.IO).launch {
             var connection: HttpURLConnection? = null
             try {
@@ -624,7 +624,7 @@ class MainActivity : AppCompatActivity() {
                     secureTokenStorage.saveRefreshToken(refreshToken)
                     
                     // Create requisition after getting the access token
-                    createRequisition(accessToken)
+                    createRequisition(accessToken, cardId)
                 } else {
                     val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
                     println("Token Error Response: $errorResponse")
@@ -644,7 +644,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createRequisition(accessToken: String) {
+    private fun createRequisition(accessToken: String, cardId: String) {
         CoroutineScope(Dispatchers.IO).launch {
             var connection: HttpURLConnection? = null
             try {
@@ -718,7 +718,7 @@ class MainActivity : AppCompatActivity() {
                         val requisitionDetails = getRequisitionDetails(accessToken, requisitionId)
                         if (requisitionDetails != null) {
                             // Get the account balance
-                            getAccountBalance(accessToken, requisitionDetails)
+                            getAccountBalance(accessToken, requisitionDetails, cardId)
                         }
                     } catch (e: Exception) {
                         println("JSON Parsing Error: ${e.message}")
@@ -795,7 +795,7 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
-    private suspend fun getAccountBalance(accessToken: String, accountId: String) {
+    private suspend fun getAccountBalance(accessToken: String, accountId: String, cardId: String) {
         var connection: HttpURLConnection? = null
         try {
             val url = URL("https://bankaccountdata.gocardless.com/api/v2/accounts/$accountId/balances/")
@@ -825,13 +825,14 @@ class MainActivity : AppCompatActivity() {
                     val formattedAmount = String.format("%.2f", amount.toDouble())
                     val balanceText = "$formattedAmount lei"
                     
-                    // Save the balance
-                    secureTokenStorage.saveBankBalance(balanceText)
+                    // Save the balance for this specific card
+                    secureTokenStorage.saveBankBalance(cardId, balanceText)
                     
                     // Update the balance in Report Activity
                     withContext(Dispatchers.Main) {
                         val intent = Intent(this@MainActivity, ReportActivity::class.java).apply {
                             putExtra("BALANCE", balanceText)
+                            putExtra("CARD_ID", cardId)
                         }
                         startActivity(intent)
                     }

@@ -22,8 +22,16 @@ class ReportActivity : AppCompatActivity() {
         // Initialize SecureTokenStorage
         val secureTokenStorage = SecureTokenStorage(this)
 
-        // Get the balance from the intent or saved storage
-        val balance = intent.getStringExtra("BALANCE") ?: secureTokenStorage.getBankBalance()
+        // Get the card ID from the intent
+        val cardId = intent.getStringExtra("CARD_ID")
+
+        // Get the balance from the intent or saved storage for this specific card
+        val balance = if (cardId != null) {
+            intent.getStringExtra("BALANCE") ?: secureTokenStorage.getBankBalance(cardId)
+        } else {
+            null
+        }
+
         if (balance != null) {
             binding.textView11.text = balance
         }

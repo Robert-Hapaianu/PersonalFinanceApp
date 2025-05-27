@@ -53,7 +53,10 @@ class CardAdapter(private val cards: MutableList<CardDomain>, private val contex
             // Add click listener for card
             root.setOnClickListener {
                 val context = root.context
-                context.startActivity(Intent(context, ReportActivity::class.java))
+                val intent = Intent(context, ReportActivity::class.java).apply {
+                    putExtra("CARD_ID", card.cardNumber) // Use card number as unique identifier
+                }
+                context.startActivity(intent)
             }
 
             // Add click listener for delete button

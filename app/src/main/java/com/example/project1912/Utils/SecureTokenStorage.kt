@@ -49,11 +49,11 @@ class SecureTokenStorage(context: Context) {
         return sharedPreferences.getString("account_id", null)
     }
 
-    fun saveBankBalance(balance: String) {
-        sharedPreferences.edit().putString("bank_balance", balance).apply()
+    fun saveBankBalance(cardId: String, balance: String) {
+        sharedPreferences.edit().putString("bank_balance_$cardId", balance).apply()
     }
 
-    fun getBankBalance(): String? {
-        return sharedPreferences.getString("bank_balance", null)
+    fun getBankBalance(cardId: String): String? {
+        return sharedPreferences.getString("bank_balance_$cardId", null)
     }
 } 
