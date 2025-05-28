@@ -30,7 +30,7 @@ class ReportListAdapter(private val items: MutableList<BudgetDomain>) :
 
         holder.binding.titleTxt.text = item.title
         holder.binding.percentTxt.text = "%" + item.percent
-        holder.binding.priceTxt.text = "$" + formatter?.format(item.price) + " /Month"
+        holder.binding.priceTxt.text = formatter?.format(item.price) + " lei /Month"
 
         holder.binding.circularProgressBar.apply {
             progress = item.percent.toFloat()

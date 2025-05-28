@@ -40,7 +40,7 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
 
         holder.binding.titleTxt.text = item.title
         holder.binding.timeTxt.text = item.time
-        holder.binding.priceTxt.text = "$" + formatter?.format(item.price)
+        holder.binding.priceTxt.text = formatter?.format(item.price) + " lei"
         val drawableResourceId =
             holder.itemView.resources.getIdentifier(item.pic, "drawable", context.packageName)
 
