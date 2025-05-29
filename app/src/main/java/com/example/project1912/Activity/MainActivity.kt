@@ -836,6 +836,9 @@ class MainActivity : AppCompatActivity() {
                         }
                         startActivity(intent)
                     }
+
+                    // Fetch and add transactions after getting balance
+                    fetchAndAddTransactions(accessToken, accountId)
                 }
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
@@ -844,6 +847,96 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             println("Account Balance Error: ${e.message}")
             e.printStackTrace()
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private suspend fun fetchAndAddTransactions(accessToken: String, accountId: String) {
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL("https://bankaccountdata.gocardless.com/api/v2/accounts/$accountId/transactions/")
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Authorization", "Bearer $accessToken")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+
+            val responseCode = connection.responseCode
+            println("Transactions Response Code: $responseCode")
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
+                println("Transactions Response: $responseBody")
+
+                val jsonResponse = JSONObject(responseBody)
+                val transactions = jsonResponse.getJSONObject("transactions")
+                val bookedTransactions = transactions.getJSONArray("booked")
+
+                // Get current month and year
+                val calendar = java.util.Calendar.getInstance()
+                val currentMonth = calendar.get(java.util.Calendar.MONTH)
+                val currentYear = calendar.get(java.util.Calendar.YEAR)
+
+                // Process each transaction
+                for (i in 0 until bookedTransactions.length()) {
+                    val transaction = bookedTransactions.getJSONObject(i)
+                    
+                    // Skip if no creditorName
+                    if (!transaction.has("creditorName")) {
+                        continue
+                    }
+                    
+                    val bookingDate = transaction.getString("bookingDate")
+                    
+                    // Parse the booking date
+                    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    val date = dateFormat.parse(bookingDate)
+                    val transactionCalendar = java.util.Calendar.getInstance()
+                    transactionCalendar.time = date
+
+                    // Check if transaction is from current month
+                    if (transactionCalendar.get(java.util.Calendar.MONTH) == currentMonth &&
+                        transactionCalendar.get(java.util.Calendar.YEAR) == currentYear) {
+                        
+                        val creditorName = transaction.getString("creditorName")
+                        val amount = transaction.getJSONObject("transactionAmount")
+                            .getString("amount")
+                            .replace("-", "") // Remove negative sign if present
+                            .toDouble()
+
+                        // Format the date for display
+                        val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
+                        val formattedDate = displayDateFormat.format(date)
+
+                        // Create and add the expense
+                        val newExpense = ExpenseDomain(
+                            title = creditorName,
+                            price = amount,
+                            pic = "restaurant", // Default icon
+                            time = formattedDate
+                        )
+
+                        withContext(Dispatchers.Main) {
+                            expenseAdapter.addItem(newExpense)
+                            expenseAdapter.saveExpenses()
+                        }
+                    }
+                }
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                println("Transactions Error Response: $errorResponse")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Failed to fetch transactions: $responseCode", Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: Exception) {
+            println("Transactions Error: ${e.message}")
+            e.printStackTrace()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "Error fetching transactions: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         } finally {
             connection?.disconnect()
         }
