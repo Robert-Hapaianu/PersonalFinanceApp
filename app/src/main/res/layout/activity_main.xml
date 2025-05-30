@@ -102,49 +102,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <HorizontalScrollView
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/cardsRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:scrollbars="none"
-                    android:overScrollMode="never">
-
-                    <LinearLayout
-                        android:id="@+id/cardContainer"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/cardsRecyclerView"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:clipToPadding="false"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp" />
-
-                        <androidx.constraintlayout.widget.ConstraintLayout
-                            android:id="@+id/addCardBtn"
-                            android:layout_width="300dp"
-                            android:layout_height="230dp"
-                            android:layout_margin="16dp"
-                            android:background="@drawable/card"
-                            android:alpha="0.7">
-
-                            <ImageView
-                                android:id="@+id/addCardIcon"
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_input_add"
-                                android:tint="@color/white"
-                                app:layout_constraintBottom_toBottomOf="parent"
-                                app:layout_constraintEnd_toEndOf="parent"
-                                app:layout_constraintStart_toStartOf="parent"
-                                app:layout_constraintTop_toTopOf="parent" />
-                        </androidx.constraintlayout.widget.ConstraintLayout>
-
-                    </LinearLayout>
-                </HorizontalScrollView>
+                    android:clipToPadding="false"
+                    android:fadeScrollbars="false"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:scrollbarStyle="outsideOverlay"
+                    android:scrollbars="horizontal" />
 
                 <eightbitlab.com.blurview.BlurView
                     android:id="@+id/blueView"
@@ -152,13 +120,16 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     app:blurOverlayColor="#10ffffff"
-                    app:layout_constraintBottom_toBottomOf="@id/cardsRecyclerView"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent">
 
                     <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/constraintLayout"
                         android:layout_width="match_parent"
-                        android:layout_height="100dp">
+                        android:layout_height="100dp"
+                        tools:layout_editor_absoluteX="-2dp"
+                        tools:layout_editor_absoluteY="2dp">
 
                         <TextView
                             android:id="@+id/textView6"

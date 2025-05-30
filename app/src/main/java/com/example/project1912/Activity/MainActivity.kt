@@ -425,13 +425,9 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
             adapter = cardAdapter
         }
-        
-        binding.addCardBtn.setOnClickListener {
-            showAddCardDialog()
-        }
     }
 
-    private fun showAddCardDialog() {
+    fun showAddCardDialog() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(50, 30, 50, 30)
@@ -583,6 +579,9 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+
+        // Show keyboard automatically
+        cardNumberEdit.requestFocus()
     }
 
     private fun generateAccessToken(cardId: String) {
