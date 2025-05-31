@@ -7,7 +7,7 @@ data class CardDomain(
     val cardNumber: String = "",
     val expiryDate: String = "",
     val cardType: String = "", // "visa" or "mastercard" etc.
-    val balance: Double = 0.0
+    var balance: Double = 0.0
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readString().toString(),

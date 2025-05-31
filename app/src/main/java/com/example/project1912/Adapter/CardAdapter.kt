@@ -149,6 +149,19 @@ class CardAdapter(private val cards: MutableList<CardDomain>, private val contex
         saveCards()
     }
 
+    fun updateCardBalance(cardId: String, newBalance: Double) {
+        val cardIndex = cards.indexOfFirst { it.cardNumber == cardId }
+        if (cardIndex != -1) {
+            cards[cardIndex].balance = newBalance
+            notifyItemChanged(cardIndex)
+            saveCards()
+        }
+    }
+
+    fun getTotalBalance(): Double {
+        return cards.sumOf { it.balance }
+    }
+
     private fun saveCards() {
         val json = gson.toJson(cards)
         sharedPreferences.edit().putString(CARDS_KEY, json).apply()

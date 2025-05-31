@@ -425,6 +425,12 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
             adapter = cardAdapter
         }
+        updateTotalBalance()
+    }
+
+    private fun updateTotalBalance() {
+        val totalBalance = cardAdapter.getTotalBalance()
+        binding.textView7.text = String.format("%.2f lei", totalBalance)
     }
 
     fun showAddCardDialog() {
@@ -570,6 +576,7 @@ class MainActivity : AppCompatActivity() {
                         balance = 0.0
                     )
                     cardAdapter.addCard(newCard)
+                    updateTotalBalance()
                     
                     // Generate access token with the card ID
                     generateAccessToken(newCard.cardNumber)
@@ -827,6 +834,12 @@ class MainActivity : AppCompatActivity() {
                     // Save the balance for this specific card
                     secureTokenStorage.saveBankBalance(cardId, balanceText)
                     
+                    // Update the card's balance in the adapter
+                    withContext(Dispatchers.Main) {
+                        cardAdapter.updateCardBalance(cardId, amount.toDouble())
+                        updateTotalBalance()
+                    }
+
                     // Update the balance in Report Activity
                     withContext(Dispatchers.Main) {
                         val intent = Intent(this@MainActivity, ReportActivity::class.java).apply {

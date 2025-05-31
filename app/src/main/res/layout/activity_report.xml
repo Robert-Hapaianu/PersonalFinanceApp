@@ -90,7 +90,7 @@
                         android:id="@+id/textView11"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="3,546.31 lei"
+                        android:text="0 lei"
                         android:textColor="@color/darkblue"
                         android:textSize="21sp"
                         android:textStyle="bold"
@@ -136,7 +136,7 @@
                         android:id="@+id/textView13"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="3,245.21 lei"
+                        android:text="0 lei"
                         android:textColor="#2d9738"
                         android:textSize="20sp"
                         android:textStyle="bold"
@@ -171,7 +171,7 @@
                         android:id="@+id/textView16"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1,325.78 lei"
+                        android:text="0 lei"
                         android:textColor="#ef2642"
                         android:textSize="20sp"
                         android:textStyle="bold"
@@ -208,7 +208,7 @@
 <!--                        android:id="@+id/textView18"-->
 <!--                        android:layout_width="match_parent"-->
 <!--                        android:layout_height="wrap_content"-->
-<!--                        android:text="3,452.23 lei"-->
+<!--                        android:text="0 lei"-->
 <!--                        android:textColor="@color/black"-->
 <!--                        android:textSize="21sp"-->
 <!--                        android:textStyle="bold" />-->
