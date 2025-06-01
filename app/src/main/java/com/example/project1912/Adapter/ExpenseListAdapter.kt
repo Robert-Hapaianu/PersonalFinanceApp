@@ -38,7 +38,14 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
     override fun onBindViewHolder(holder: ExpenseListAdapter.Viewholder, position: Int) {
         val item = items[position]
 
-        holder.binding.titleTxt.text = item.title
+        // Truncate title if longer than 16 characters for display
+        val displayTitle = if (item.title.length > 16) {
+            item.title.take(13) + "..."
+        } else {
+            item.title
+        }
+
+        holder.binding.titleTxt.text = displayTitle
         holder.binding.timeTxt.text = item.time
         holder.binding.priceTxt.text = formatter?.format(item.price) + " lei"
         val drawableResourceId =
@@ -132,6 +139,28 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
     fun addItem(expense: ExpenseDomain) {
         items.add(0, expense)  // Add to the beginning of the list
         notifyItemInserted(0)
+    }
+
+    fun removeTransactionsByCardId(cardId: String) {
+        val iterator = items.iterator()
+        var index = 0
+        val itemsToRemove = mutableListOf<Int>()
+        
+        while (iterator.hasNext()) {
+            val item = iterator.next()
+            if (item.cardId == cardId) {
+                itemsToRemove.add(index)
+            }
+            index++
+        }
+        
+        // Remove items in reverse order to maintain correct indices
+        for (i in itemsToRemove.reversed()) {
+            items.removeAt(i)
+            notifyItemRemoved(i)
+        }
+        
+        saveExpenses() // Save changes after deletion
     }
 
     override fun getItemCount(): Int = items.size

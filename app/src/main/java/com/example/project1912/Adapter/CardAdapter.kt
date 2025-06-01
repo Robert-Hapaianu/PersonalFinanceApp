@@ -120,6 +120,11 @@ class CardAdapter(private val cards: MutableList<CardDomain>, private val contex
                     deleteButton.setOnClickListener {
                         val position = holder.adapterPosition
                         if (position != RecyclerView.NO_POSITION) {
+                            val cardToDelete = cards[position]
+                            
+                            // Remove associated transactions from MainActivity's expense adapter
+                            (context as? MainActivity)?.removeTransactionsForCard(cardToDelete.cardNumber)
+                            
                             cards.removeAt(position)
                             notifyItemRemoved(position)
                             saveCards()

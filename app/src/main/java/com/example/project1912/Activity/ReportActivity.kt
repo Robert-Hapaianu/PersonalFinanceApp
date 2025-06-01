@@ -1,6 +1,7 @@
 package com.example.project1912.Activity
 
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +36,17 @@ class ReportActivity : AppCompatActivity() {
         if (balance != null) {
             binding.textView11.text = balance
         }
+
+        // Get and display income and expense totals
+        val income = intent.getStringExtra("INCOME")
+        val expense = intent.getStringExtra("EXPENSE")
+        
+        Log.d("ReportActivity", "Received income: $income")
+        Log.d("ReportActivity", "Received expense: $expense")
+
+        // Set the values with fallback to "0 lei"
+        binding.textView13.text = income ?: "0 lei"
+        binding.textView16.text = expense ?: "0 lei"
 
         window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,

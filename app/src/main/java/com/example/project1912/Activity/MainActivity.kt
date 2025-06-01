@@ -400,7 +400,7 @@ class MainActivity : AppCompatActivity() {
                     val newExpense = ExpenseDomain(
                         title = title,
                         price = price,
-                        pic = "restaurant",  // Default icon for new entries
+                        pic = "btn_1",  // Use btn_1.png image for all transactions
                         time = "$currentTime • $currentDate"
                     )
                     
@@ -431,6 +431,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateTotalBalance() {
         val totalBalance = cardAdapter.getTotalBalance()
         binding.textView7.text = String.format("%.2f lei", totalBalance)
+    }
+
+    fun removeTransactionsForCard(cardId: String) {
+        expenseAdapter.removeTransactionsByCardId(cardId)
     }
 
     fun showAddCardDialog() {
@@ -850,7 +854,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     // Fetch and add transactions after getting balance
-                    fetchAndAddTransactions(accessToken, accountId)
+                    fetchAndAddTransactions(accessToken, accountId, cardId)
                 }
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
@@ -864,7 +868,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun fetchAndAddTransactions(accessToken: String, accountId: String) {
+    private suspend fun fetchAndAddTransactions(accessToken: String, accountId: String, cardId: String) {
         var connection: HttpURLConnection? = null
         try {
             val url = URL("https://bankaccountdata.gocardless.com/api/v2/accounts/$accountId/transactions/")
@@ -891,6 +895,13 @@ class MainActivity : AppCompatActivity() {
                 val currentMonth = calendar.get(java.util.Calendar.MONTH)
                 val currentYear = calendar.get(java.util.Calendar.YEAR)
 
+                // Variables to track totals
+                var totalIncome = 0.0
+                var totalExpense = 0.0
+
+                println("Starting transaction processing...")
+                println("Current month: $currentMonth, Current year: $currentYear")
+
                 // Process each transaction
                 for (i in 0 until bookedTransactions.length()) {
                     val transaction = bookedTransactions.getJSONObject(i)
@@ -901,7 +912,13 @@ class MainActivity : AppCompatActivity() {
                     }
                     
                     val bookingDate = transaction.getString("bookingDate")
-                    
+                    val creditorName = transaction.getString("creditorName")
+                    val amount = transaction.getJSONObject("transactionAmount")
+                        .getString("amount")
+                        .toDouble() // Keep the sign to determine if it's income or expense
+
+                    println("Processing transaction: $creditorName, Amount: $amount, Date: $bookingDate")
+
                     // Parse the booking date
                     val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                     val date = dateFormat.parse(bookingDate)
@@ -912,11 +929,14 @@ class MainActivity : AppCompatActivity() {
                     if (transactionCalendar.get(java.util.Calendar.MONTH) == currentMonth &&
                         transactionCalendar.get(java.util.Calendar.YEAR) == currentYear) {
                         
-                        val creditorName = transaction.getString("creditorName")
-                        val amount = transaction.getJSONObject("transactionAmount")
-                            .getString("amount")
-                            .replace("-", "") // Remove negative sign if present
-                            .toDouble()
+                        // Add to appropriate total
+                        if (amount > 0) {
+                            totalIncome += amount
+                            println("Added to income: $amount, New total income: $totalIncome")
+                        } else {
+                            totalExpense += -amount // Convert negative to positive for expense total
+                            println("Added to expense: ${-amount}, New total expense: $totalExpense")
+                        }
 
                         // Format the date for display
                         val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
@@ -925,16 +945,38 @@ class MainActivity : AppCompatActivity() {
                         // Create and add the expense
                         val newExpense = ExpenseDomain(
                             title = creditorName,
-                            price = amount,
-                            pic = "restaurant", // Default icon
-                            time = formattedDate
+                            price = -amount, // Convert to positive for display
+                            pic = "btn_1", // Use btn_1.png image for all transactions
+                            time = formattedDate,
+                            cardId = cardId // Associate with the specific card
                         )
 
                         withContext(Dispatchers.Main) {
                             expenseAdapter.addItem(newExpense)
                             expenseAdapter.saveExpenses()
                         }
+                    } else {
+                        println("Skipping transaction from different month/year")
                     }
+                }
+
+                // Format totals with 2 decimal places
+                val formattedIncome = String.format("%.2f", totalIncome)
+                val formattedExpense = String.format("%.2f", totalExpense)
+
+                println("Final totals:")
+                println("Total Income: $formattedIncome lei")
+                println("Total Expense: $formattedExpense lei")
+
+                // Update ReportActivity with the totals
+                withContext(Dispatchers.Main) {
+                    val intent = Intent(this@MainActivity, ReportActivity::class.java).apply {
+                        putExtra("INCOME", "$formattedIncome lei")
+                        putExtra("EXPENSE", "$formattedExpense lei")
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Clear any existing instances
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
                 }
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
