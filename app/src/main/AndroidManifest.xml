@@ -33,6 +33,12 @@
         </activity>
 
         <activity
+            android:name=".Activity.HistoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Activity.BudgetsActivity"
+            android:exported="false" />
+        <activity
             android:name=".Activity.ReportActivity"
             android:exported="false" />
         <activity

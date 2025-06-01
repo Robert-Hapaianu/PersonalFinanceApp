@@ -96,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         loadSavedProfileImage()
         loadSavedUserInfo()
         secureTokenStorage = SecureTokenStorage(this)
+        setupNavigation()
 
         // Ensure we start at the top of the screen
         binding.scrollView2.post {
@@ -993,6 +994,28 @@ class MainActivity : AppCompatActivity() {
             }
         } finally {
             connection?.disconnect()
+        }
+    }
+
+    private fun setupNavigation() {
+        // Home button (current screen) - already on home screen
+        binding.homeNavButton.setOnClickListener {
+            // Already on home screen, do nothing or scroll to top
+            binding.scrollView2.post {
+                binding.scrollView2.scrollTo(0, 0)
+            }
+        }
+
+        // Budgets button navigation
+        binding.budgetsNavButton.setOnClickListener {
+            val intent = Intent(this, BudgetsActivity::class.java)
+            startActivity(intent)
+        }
+
+        // History button navigation - placeholder for now
+        binding.historyNavButton.setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
+            startActivity(intent)
         }
     }
 }
