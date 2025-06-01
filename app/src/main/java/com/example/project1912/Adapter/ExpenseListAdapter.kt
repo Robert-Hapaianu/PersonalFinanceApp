@@ -82,13 +82,13 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
         }
         layout.addView(activityEdit)
 
-        val spacing = View(context).apply {
+        val spacing1 = View(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 20
             )
         }
-        layout.addView(spacing)
+        layout.addView(spacing1)
 
         val priceLabel = TextView(context).apply {
             text = "Price"
@@ -106,16 +106,58 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
         }
         layout.addView(priceEdit)
 
+        val spacing2 = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                20
+            )
+        }
+        layout.addView(spacing2)
+
+        val budgetLabel = TextView(context).apply {
+            text = "Budget"
+            setTextColor(ContextCompat.getColor(context, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(budgetLabel)
+
+        // Load saved budgets
+        val savedBudgets = com.example.project1912.Adapter.ReportListAdapter.loadSavedBudgets(context)
+        val budgetTitles = mutableListOf("No Budget")
+        budgetTitles.addAll(savedBudgets.map { it.title })
+
+        val budgetSpinner = android.widget.Spinner(context).apply {
+            val adapter = android.widget.ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_item,
+                budgetTitles
+            )
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            this.adapter = adapter
+            
+            // Set current selection based on item's budget
+            val currentBudgetIndex = if (item.budget != null) {
+                budgetTitles.indexOf(item.budget)
+            } else {
+                0 // "No Budget"
+            }
+            setSelection(if (currentBudgetIndex >= 0) currentBudgetIndex else 0)
+        }
+        layout.addView(budgetSpinner)
+
         AlertDialog.Builder(context)
             .setTitle("Edit Expense")
             .setView(layout)
             .setPositiveButton("Save") { _, _ ->
                 val newTitle = activityEdit.text.toString()
                 val newPrice = priceEdit.text.toString().toDoubleOrNull() ?: item.price
+                val selectedBudget = if (budgetSpinner.selectedItemPosition == 0) null else budgetTitles[budgetSpinner.selectedItemPosition]
 
                 items[position] = item.copy(
                     title = newTitle,
-                    price = newPrice
+                    price = newPrice,
+                    budget = selectedBudget
                 )
                 notifyItemChanged(position)
                 saveExpenses()
@@ -129,6 +171,16 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
         val gson = Gson()
         val json = gson.toJson(items)
         sharedPreferences.edit().putString("expenses", json).apply()
+        
+        // Notify that budgets may need to be updated
+        notifyBudgetUpdate()
+    }
+
+    private fun notifyBudgetUpdate() {
+        // Send a broadcast or use other mechanism to notify budget changes
+        // For simplicity, we'll use a static flag that BudgetsActivity can check
+        val prefs = context.getSharedPreferences("BudgetUpdatePrefs", Context.MODE_PRIVATE)
+        prefs.edit().putLong("last_expense_update", System.currentTimeMillis()).apply()
     }
 
     fun removeItem(position: Int) {

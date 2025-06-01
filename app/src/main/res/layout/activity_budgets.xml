@@ -69,6 +69,19 @@
         </LinearLayout>
     </ScrollView>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addBudgetFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="86dp"
+        android:backgroundTint="@color/purple"
+        app:tint="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:src="@android:drawable/ic_input_add"
+        android:contentDescription="Add budget" />
+
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/bottomNavLayout"
         android:layout_width="match_parent"

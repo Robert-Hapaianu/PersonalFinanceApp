@@ -8,14 +8,15 @@ data class ExpenseDomain(
     val price: Double = 0.0,
     val pic: String = "",
     val time: String = "",
-    val cardId: String? = null
-
+     val cardId: String? = null,
+    val budget: String? = null
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readString().toString(),
         parcel.readDouble(),
         parcel.readString().toString(),
         parcel.readString().toString(),
+        parcel.readString(),
         parcel.readString()
     ) {
     }
@@ -26,6 +27,7 @@ data class ExpenseDomain(
         parcel.writeString(pic)
         parcel.writeString(time)
         parcel.writeString(cardId)
+        parcel.writeString(budget)
     }
 
     override fun describeContents(): Int {

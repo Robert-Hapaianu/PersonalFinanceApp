@@ -362,13 +362,13 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(activityEdit)
 
-        val spacing = View(this).apply {
+        val spacing1 = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 20
             )
         }
-        layout.addView(spacing)
+        layout.addView(spacing1)
 
         val priceLabel = TextView(this).apply {
             text = "Price"
@@ -385,12 +385,45 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(priceEdit)
 
+        val spacing2 = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                20
+            )
+        }
+        layout.addView(spacing2)
+
+        val budgetLabel = TextView(this).apply {
+            text = "Budget"
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            textSize = 16f
+            setPadding(0, 0, 0, 8)
+        }
+        layout.addView(budgetLabel)
+
+        // Load saved budgets
+        val savedBudgets = com.example.project1912.Adapter.ReportListAdapter.loadSavedBudgets(this)
+        val budgetTitles = mutableListOf("No Budget")
+        budgetTitles.addAll(savedBudgets.map { it.title })
+
+        val budgetSpinner = Spinner(this).apply {
+            val adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_item,
+                budgetTitles
+            )
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            this.adapter = adapter
+        }
+        layout.addView(budgetSpinner)
+
         AlertDialog.Builder(this)
             .setTitle("Add New Expense")
             .setView(layout)
             .setPositiveButton("Add") { _, _ ->
                 val title = activityEdit.text.toString()
                 val price = priceEdit.text.toString().toDoubleOrNull()
+                val selectedBudget = if (budgetSpinner.selectedItemPosition == 0) null else budgetTitles[budgetSpinner.selectedItemPosition]
 
                 if (title.isNotEmpty() && price != null) {
                     val currentTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -402,7 +435,8 @@ class MainActivity : AppCompatActivity() {
                         title = title,
                         price = price,
                         pic = "btn_1",  // Use btn_1.png image for all transactions
-                        time = "$currentTime • $currentDate"
+                        time = "$currentTime • $currentDate",
+                        budget = selectedBudget
                     )
                     
                     expenseAdapter.addItem(newExpense)
@@ -924,40 +958,46 @@ class MainActivity : AppCompatActivity() {
                     val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                     val date = dateFormat.parse(bookingDate)
                     val transactionCalendar = java.util.Calendar.getInstance()
-                    transactionCalendar.time = date
+                    
+                    if (date != null) {
+                        transactionCalendar.time = date
 
-                    // Check if transaction is from current month
-                    if (transactionCalendar.get(java.util.Calendar.MONTH) == currentMonth &&
-                        transactionCalendar.get(java.util.Calendar.YEAR) == currentYear) {
-                        
-                        // Add to appropriate total
-                        if (amount > 0) {
-                            totalIncome += amount
-                            println("Added to income: $amount, New total income: $totalIncome")
+                        // Check if transaction is from current month
+                        if (transactionCalendar.get(java.util.Calendar.MONTH) == currentMonth &&
+                            transactionCalendar.get(java.util.Calendar.YEAR) == currentYear) {
+                            
+                            // Add to appropriate total
+                            if (amount > 0) {
+                                totalIncome += amount
+                                println("Added to income: $amount, New total income: $totalIncome")
+                            } else {
+                                totalExpense += -amount // Convert negative to positive for expense total
+                                println("Added to expense: ${-amount}, New total expense: $totalExpense")
+                            }
+
+                            // Format the date for display
+                            val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
+                            val formattedDate = displayDateFormat.format(date)
+
+                            // Create and add the expense
+                            val newExpense = ExpenseDomain(
+                                title = creditorName,
+                                price = -amount, // Convert to positive for display
+                                pic = "btn_1", // Use btn_1.png image for all transactions
+                                time = formattedDate,
+                                cardId = cardId, // Associate with the specific card
+                                budget = null // Bank transactions don't have a budget by default
+                            )
+
+                            withContext(Dispatchers.Main) {
+                                expenseAdapter.addItem(newExpense)
+                                expenseAdapter.saveExpenses()
+                            }
                         } else {
-                            totalExpense += -amount // Convert negative to positive for expense total
-                            println("Added to expense: ${-amount}, New total expense: $totalExpense")
-                        }
-
-                        // Format the date for display
-                        val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
-                        val formattedDate = displayDateFormat.format(date)
-
-                        // Create and add the expense
-                        val newExpense = ExpenseDomain(
-                            title = creditorName,
-                            price = -amount, // Convert to positive for display
-                            pic = "btn_1", // Use btn_1.png image for all transactions
-                            time = formattedDate,
-                            cardId = cardId // Associate with the specific card
-                        )
-
-                        withContext(Dispatchers.Main) {
-                            expenseAdapter.addItem(newExpense)
-                            expenseAdapter.saveExpenses()
+                            println("Skipping transaction from different month/year")
                         }
                     } else {
-                        println("Skipping transaction from different month/year")
+                        println("Failed to parse date: $bookingDate")
                     }
                 }
 
