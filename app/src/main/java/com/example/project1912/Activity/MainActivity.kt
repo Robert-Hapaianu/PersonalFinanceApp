@@ -941,20 +941,12 @@ class MainActivity : AppCompatActivity() {
                 for (i in 0 until bookedTransactions.length()) {
                     val transaction = bookedTransactions.getJSONObject(i)
                     
-                    // Skip if no creditorName
-                    if (!transaction.has("creditorName")) {
-                        continue
-                    }
-                    
                     val bookingDate = transaction.getString("bookingDate")
-                    val creditorName = transaction.getString("creditorName")
                     val amount = transaction.getJSONObject("transactionAmount")
                         .getString("amount")
                         .toDouble() // Keep the sign to determine if it's income or expense
 
-                    println("Processing transaction: $creditorName, Amount: $amount, Date: $bookingDate")
-
-                    // Parse the booking date
+                    // Parse the booking date first to check if it's from current month
                     val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                     val date = dateFormat.parse(bookingDate)
                     val transactionCalendar = java.util.Calendar.getInstance()
@@ -966,7 +958,7 @@ class MainActivity : AppCompatActivity() {
                         if (transactionCalendar.get(java.util.Calendar.MONTH) == currentMonth &&
                             transactionCalendar.get(java.util.Calendar.YEAR) == currentYear) {
                             
-                            // Add to appropriate total
+                            // Add to appropriate total based on amount sign (for all transactions)
                             if (amount > 0) {
                                 totalIncome += amount
                                 println("Added to income: $amount, New total income: $totalIncome")
@@ -975,23 +967,33 @@ class MainActivity : AppCompatActivity() {
                                 println("Added to expense: ${-amount}, New total expense: $totalExpense")
                             }
 
-                            // Format the date for display
-                            val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
-                            val formattedDate = displayDateFormat.format(date)
+                            // Only display transactions with creditorName (expenses) in the transaction list
+                            if (transaction.has("creditorName")) {
+                                val creditorName = transaction.getString("creditorName")
+                                println("Processing transaction for display: $creditorName, Amount: $amount, Date: $bookingDate")
 
-                            // Create and add the expense
-                            val newExpense = ExpenseDomain(
-                                title = creditorName,
-                                price = -amount, // Convert to positive for display
-                                pic = "btn_1", // Use btn_1.png image for all transactions
-                                time = formattedDate,
-                                cardId = cardId, // Associate with the specific card
-                                budget = null // Bank transactions don't have a budget by default
-                            )
+                                // Format the date for display
+                                val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
+                                val formattedDate = displayDateFormat.format(date)
 
-                            withContext(Dispatchers.Main) {
-                                expenseAdapter.addItem(newExpense)
-                                expenseAdapter.saveExpenses()
+                                // Create and add the expense (only for negative amounts/creditor transactions)
+                                val newExpense = ExpenseDomain(
+                                    title = creditorName,
+                                    price = -amount, // Convert negative to positive for display
+                                    pic = "btn_1", // Use btn_1.png image for all transactions
+                                    time = formattedDate,
+                                    cardId = cardId, // Associate with the specific card
+                                    budget = null // Bank transactions don't have a budget by default
+                                )
+
+                                withContext(Dispatchers.Main) {
+                                    expenseAdapter.addItem(newExpense)
+                                    expenseAdapter.saveExpenses()
+                                }
+                            } else {
+                                // Income transaction - count for totals but don't display
+                                val debtorName = if (transaction.has("debtorName")) transaction.getString("debtorName") else "Income"
+                                println("Income transaction (not displayed): $debtorName, Amount: $amount, Date: $bookingDate")
                             }
                         } else {
                             println("Skipping transaction from different month/year")
@@ -1009,11 +1011,16 @@ class MainActivity : AppCompatActivity() {
                 println("Total Income: $formattedIncome lei")
                 println("Total Expense: $formattedExpense lei")
 
+                // Save the income and expense values for this specific card
+                secureTokenStorage.saveIncomeForCard(cardId, "$formattedIncome lei")
+                secureTokenStorage.saveExpenseForCard(cardId, "$formattedExpense lei")
+
                 // Update ReportActivity with the totals
                 withContext(Dispatchers.Main) {
                     val intent = Intent(this@MainActivity, ReportActivity::class.java).apply {
                         putExtra("INCOME", "$formattedIncome lei")
                         putExtra("EXPENSE", "$formattedExpense lei")
+                        putExtra("CARD_ID", cardId)
                         addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Clear any existing instances
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }

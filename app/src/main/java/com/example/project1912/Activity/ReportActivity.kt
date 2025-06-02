@@ -33,9 +33,12 @@ class ReportActivity : AppCompatActivity() {
         }
 
         // Get and display income and expense totals
-        val income = intent.getStringExtra("INCOME")
-        val expense = intent.getStringExtra("EXPENSE")
+        val income = intent.getStringExtra("INCOME") ?: 
+                    (if (cardId != null) secureTokenStorage.getIncomeForCard(cardId) else null)
+        val expense = intent.getStringExtra("EXPENSE") ?: 
+                     (if (cardId != null) secureTokenStorage.getExpenseForCard(cardId) else null)
         
+        Log.d("ReportActivity", "Card ID: $cardId")
         Log.d("ReportActivity", "Received income: $income")
         Log.d("ReportActivity", "Received expense: $expense")
 

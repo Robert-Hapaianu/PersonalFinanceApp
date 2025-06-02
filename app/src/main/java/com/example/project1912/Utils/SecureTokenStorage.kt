@@ -56,4 +56,20 @@ class SecureTokenStorage(context: Context) {
     fun getBankBalance(cardId: String): String? {
         return sharedPreferences.getString("bank_balance_$cardId", null)
     }
+
+    fun saveIncomeForCard(cardId: String, income: String) {
+        sharedPreferences.edit().putString("income_$cardId", income).apply()
+    }
+
+    fun getIncomeForCard(cardId: String): String? {
+        return sharedPreferences.getString("income_$cardId", null)
+    }
+
+    fun saveExpenseForCard(cardId: String, expense: String) {
+        sharedPreferences.edit().putString("expense_$cardId", expense).apply()
+    }
+
+    fun getExpenseForCard(cardId: String): String? {
+        return sharedPreferences.getString("expense_$cardId", null)
+    }
 } 
