@@ -440,7 +440,6 @@ class MainActivity : AppCompatActivity() {
                     )
                     
                     expenseAdapter.addItem(newExpense)
-                    expenseAdapter.saveExpenses()
                 } else {
                     Toast.makeText(this, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
                 }
@@ -988,7 +987,6 @@ class MainActivity : AppCompatActivity() {
 
                                 withContext(Dispatchers.Main) {
                                     expenseAdapter.addItem(newExpense)
-                                    expenseAdapter.saveExpenses()
                                 }
                             } else {
                                 // Income transaction - count for totals but don't display

@@ -56,7 +56,10 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
             .into(holder.binding.pic)
 
         holder.itemView.setOnClickListener {
-            showEditDialog(position)
+            val currentPosition = holder.adapterPosition
+            if (currentPosition != RecyclerView.NO_POSITION) {
+                showEditDialog(currentPosition)
+            }
         }
     }
 
@@ -191,6 +194,7 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
     fun addItem(expense: ExpenseDomain) {
         items.add(0, expense)  // Add to the beginning of the list
         notifyItemInserted(0)
+        saveExpenses() // Save immediately after adding the item
     }
 
     fun removeTransactionsByCardId(cardId: String) {
