@@ -157,6 +157,9 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
                 val newPrice = priceEdit.text.toString().toDoubleOrNull() ?: item.price
                 val selectedBudget = if (budgetSpinner.selectedItemPosition == 0) null else budgetTitles[budgetSpinner.selectedItemPosition]
 
+                // Save the budget mapping for future transactions with the same title
+                saveBudgetMapping(context, newTitle, selectedBudget)
+
                 items[position] = item.copy(
                     title = newTitle,
                     price = newPrice,
@@ -233,6 +236,93 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
             } else {
                 mutableListOf()
             }
+        }
+
+        // Transaction to Budget mapping methods
+        fun saveBudgetMapping(context: Context, transactionTitle: String, budgetName: String?) {
+            val sharedPreferences = context.getSharedPreferences("BudgetMappingPrefs", Context.MODE_PRIVATE)
+            val gson = Gson()
+            
+            // Load existing mappings
+            val existingMappingsJson = sharedPreferences.getString("budget_mappings", null)
+            val mappings = if (existingMappingsJson != null) {
+                val type = object : TypeToken<MutableMap<String, String>>() {}.type
+                gson.fromJson<MutableMap<String, String>>(existingMappingsJson, type)
+            } else {
+                mutableMapOf<String, String>()
+            }
+            
+            // Update or remove mapping
+            if (budgetName != null) {
+                mappings[transactionTitle] = budgetName
+                println("Saved mapping: '$transactionTitle' -> '$budgetName'")
+            } else {
+                mappings.remove(transactionTitle)
+                println("Removed mapping for: '$transactionTitle'")
+            }
+            
+            // Save updated mappings
+            val updatedJson = gson.toJson(mappings)
+            sharedPreferences.edit().putString("budget_mappings", updatedJson).apply()
+        }
+
+        fun getBudgetMapping(context: Context, transactionTitle: String): String? {
+            val sharedPreferences = context.getSharedPreferences("BudgetMappingPrefs", Context.MODE_PRIVATE)
+            val gson = Gson()
+            val json = sharedPreferences.getString("budget_mappings", null)
+            
+            return if (json != null) {
+                val type = object : TypeToken<MutableMap<String, String>>() {}.type
+                val mappings = gson.fromJson<MutableMap<String, String>>(json, type)
+                val mapping = mappings[transactionTitle]
+                if (mapping != null) {
+                    println("Found mapping: '$transactionTitle' -> '$mapping'")
+                }
+                mapping
+            } else {
+                null
+            }
+        }
+
+        fun cleanupMappingsForDeletedBudget(context: Context, deletedBudgetName: String) {
+            val sharedPreferences = context.getSharedPreferences("BudgetMappingPrefs", Context.MODE_PRIVATE)
+            val gson = Gson()
+            val json = sharedPreferences.getString("budget_mappings", null)
+            
+            if (json != null) {
+                val type = object : TypeToken<MutableMap<String, String>>() {}.type
+                val mappings = gson.fromJson<MutableMap<String, String>>(json, type)
+                
+                // Remove all mappings that point to the deleted budget
+                val keysToRemove = mappings.filterValues { it == deletedBudgetName }.keys
+                keysToRemove.forEach { key ->
+                    mappings.remove(key)
+                    println("Removed mapping for '$key' due to budget '$deletedBudgetName' deletion")
+                }
+                
+                // Save updated mappings
+                val updatedJson = gson.toJson(mappings)
+                sharedPreferences.edit().putString("budget_mappings", updatedJson).apply()
+            }
+        }
+
+        fun autoAssignBudget(context: Context, transactionTitle: String): String? {
+            val mappedBudget = getBudgetMapping(context, transactionTitle)
+            if (mappedBudget != null) {
+                // Verify the budget still exists
+                val savedBudgets = com.example.project1912.Adapter.ReportListAdapter.loadSavedBudgets(context)
+                val budgetExists = savedBudgets.any { it.title == mappedBudget }
+                
+                if (budgetExists) {
+                    println("Auto-assigned budget '$mappedBudget' to transaction '$transactionTitle'")
+                    return mappedBudget
+                } else {
+                    // Budget no longer exists, remove the mapping
+                    saveBudgetMapping(context, transactionTitle, null)
+                    println("Budget '$mappedBudget' no longer exists, removed mapping for '$transactionTitle'")
+                }
+            }
+            return null
         }
     }
 }

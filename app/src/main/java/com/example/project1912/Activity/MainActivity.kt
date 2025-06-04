@@ -417,6 +417,24 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(budgetSpinner)
 
+        // Auto-assign budget when activity name changes
+        activityEdit.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val activityName = s.toString()
+                if (activityName.isNotEmpty()) {
+                    val autoAssignedBudget = ExpenseListAdapter.autoAssignBudget(this@MainActivity, activityName)
+                    if (autoAssignedBudget != null) {
+                        val budgetIndex = budgetTitles.indexOf(autoAssignedBudget)
+                        if (budgetIndex >= 0) {
+                            budgetSpinner.setSelection(budgetIndex)
+                        }
+                    }
+                }
+            }
+        })
+
         AlertDialog.Builder(this)
             .setTitle("Add New Expense")
             .setView(layout)
@@ -426,6 +444,9 @@ class MainActivity : AppCompatActivity() {
                 val selectedBudget = if (budgetSpinner.selectedItemPosition == 0) null else budgetTitles[budgetSpinner.selectedItemPosition]
 
                 if (title.isNotEmpty() && price != null) {
+                    // Save the budget mapping for future transactions with the same title
+                    ExpenseListAdapter.saveBudgetMapping(this, title, selectedBudget)
+
                     val currentTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
                         .format(java.util.Date())
                     val currentDate = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
@@ -975,6 +996,9 @@ class MainActivity : AppCompatActivity() {
                                 val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
                                 val formattedDate = displayDateFormat.format(date)
 
+                                // Auto-assign budget based on creditor name
+                                val autoAssignedBudget = ExpenseListAdapter.autoAssignBudget(this@MainActivity, creditorName)
+
                                 // Create and add the expense (only for negative amounts/creditor transactions)
                                 val newExpense = ExpenseDomain(
                                     title = creditorName,
@@ -982,7 +1006,7 @@ class MainActivity : AppCompatActivity() {
                                     pic = "btn_1", // Use btn_1.png image for all transactions
                                     time = formattedDate,
                                     cardId = cardId, // Associate with the specific card
-                                    budget = null // Bank transactions don't have a budget by default
+                                    budget = autoAssignedBudget // Use auto-assigned budget or null
                                 )
 
                                 withContext(Dispatchers.Main) {

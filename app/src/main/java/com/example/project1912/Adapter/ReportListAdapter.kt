@@ -81,6 +81,13 @@ class ReportListAdapter(private val items: MutableList<BudgetDomain>) :
     }
 
     fun removeItem(position: Int) {
+        // Get the budget title before removing it
+        val budgetToDelete = items[position]
+        val budgetTitle = budgetToDelete.title
+        
+        // Clean up all transaction mappings that reference this budget
+        ExpenseListAdapter.cleanupMappingsForDeletedBudget(context, budgetTitle)
+        
         items.removeAt(position)
         notifyItemRemoved(position)
     }
