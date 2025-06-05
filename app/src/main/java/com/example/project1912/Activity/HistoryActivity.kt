@@ -3,73 +3,154 @@ package com.example.project1912.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.project1912.Adapter.ExpenseListAdapter
+import com.example.project1912.Adapter.MonthlyHistoryAdapter
 import com.example.project1912.ViewModel.MainViewModel
 import com.example.project1912.databinding.ActivityHistoryBinding
 
 class HistoryActivity : AppCompatActivity() {
     lateinit var binding: ActivityHistoryBinding
     private val mainViewModel: MainViewModel by viewModels()
-    private lateinit var expenseAdapter: ExpenseListAdapter
+    private lateinit var monthlyHistoryAdapter: MonthlyHistoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityHistoryBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        
+        try {
+            binding = ActivityHistoryBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        )
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
 
-        initRecyclerview()
-        setVariable()
-        setupNavigation()
+            initRecyclerview()
+            setVariable()
+            setupNavigation()
+            
+            // Generate monthly history if needed (check if it's the first day of the month)
+            MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
+            
+        } catch (e: Exception) {
+            println("Error in HistoryActivity onCreate: ${e.message}")
+            e.printStackTrace()
+            Toast.makeText(this, "Error loading history page", Toast.LENGTH_LONG).show()
+            finish()
+        }
     }
 
     private fun setVariable() {
-        binding.backBtn.setOnClickListener { finish() }
+        try {
+            binding.backBtn.setOnClickListener { finish() }
+        } catch (e: Exception) {
+            println("Error setting up back button: ${e.message}")
+        }
     }
 
     private fun initRecyclerview() {
-        binding.view2.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        
-        // Load saved expenses to show transaction history
-        val savedExpenses = ExpenseListAdapter.loadSavedExpenses(this)
-        expenseAdapter = if (savedExpenses.isNotEmpty()) {
-            ExpenseListAdapter(savedExpenses)
-        } else {
-            ExpenseListAdapter(mainViewModel.loadData())
+        try {
+            binding.view2.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+            
+            // Load saved monthly history
+            val savedMonthlyHistory = MonthlyHistoryAdapter.loadSavedMonthlyHistory(this)
+            
+            // If no history exists, create a current month summary for demonstration
+            if (savedMonthlyHistory.isEmpty()) {
+                try {
+                    val currentMonthSummary = MonthlyHistoryAdapter.calculateCurrentMonthSummary(this)
+                    savedMonthlyHistory.add(currentMonthSummary)
+                } catch (e: Exception) {
+                    println("Error creating current month summary: ${e.message}")
+                    // Continue without the summary
+                }
+            }
+            
+            monthlyHistoryAdapter = MonthlyHistoryAdapter(savedMonthlyHistory)
+            binding.view2.adapter = monthlyHistoryAdapter
+            binding.view2.isNestedScrollingEnabled = false
+            
+        } catch (e: Exception) {
+            println("Error initializing RecyclerView: ${e.message}")
+            e.printStackTrace()
+            Toast.makeText(this, "Error loading history data", Toast.LENGTH_SHORT).show()
         }
-        
-        binding.view2.adapter = expenseAdapter
-        binding.view2.isNestedScrollingEnabled = false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        try {
+            // Refresh the current month summary when returning to this activity
+            refreshCurrentMonthSummary()
+        } catch (e: Exception) {
+            println("Error in onResume: ${e.message}")
+        }
+    }
+
+    private fun refreshCurrentMonthSummary() {
+        try {
+            if (::monthlyHistoryAdapter.isInitialized) {
+                // Calculate current month summary with fresh data (including updated income)
+                val currentMonthSummary = MonthlyHistoryAdapter.calculateCurrentMonthSummary(this)
+                monthlyHistoryAdapter.addItem(currentMonthSummary)
+                
+                // Also check if we need to update the previous month summary with latest income data
+                val calendar = java.util.Calendar.getInstance()
+                calendar.add(java.util.Calendar.MONTH, -1)
+                val previousMonthYear = java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(calendar.time)
+                val previousMonth = calendar.get(java.util.Calendar.MONTH)
+                val previousYear = calendar.get(java.util.Calendar.YEAR)
+                
+                // Update previous month summary if it exists
+                val savedHistory = MonthlyHistoryAdapter.loadSavedMonthlyHistory(this)
+                val existingPreviousEntry = savedHistory.find { it.monthYear == previousMonthYear }
+                
+                if (existingPreviousEntry != null) {
+                    // Recalculate previous month summary with updated income
+                    val updatedPreviousMonthSummary = MonthlyHistoryAdapter.calculatePreviousMonthSummary(
+                        this, previousMonth, previousYear, previousMonthYear
+                    )
+                    monthlyHistoryAdapter.addItem(updatedPreviousMonthSummary)
+                    println("Updated income for previous month: $previousMonthYear")
+                }
+            }
+        } catch (e: Exception) {
+            println("Error refreshing current month summary: ${e.message}")
+        }
     }
 
     private fun setupNavigation() {
-        // Home button navigation
-        binding.homeNavButton.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            startActivity(intent)
-        }
-
-        // Budgets button navigation
-        binding.budgetsNavButton.setOnClickListener {
-            val intent = Intent(this, BudgetsActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            startActivity(intent)
-        }
-
-        // History button (current screen) - no action needed
-        binding.historyNavButton.setOnClickListener {
-            // Already on History screen, do nothing or scroll to top
-            binding.scrollView3.post {
-                binding.scrollView3.scrollTo(0, 0)
+        try {
+            // Home button navigation
+            binding.homeNavButton.setOnClickListener {
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                startActivity(intent)
             }
+
+            // Budgets button navigation
+            binding.budgetsNavButton.setOnClickListener {
+                val intent = Intent(this, BudgetsActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                startActivity(intent)
+            }
+
+            // History button (current screen) - no action needed
+            binding.historyNavButton.setOnClickListener {
+                // Already on History screen, do nothing or scroll to top
+                try {
+                    binding.scrollView3.post {
+                        binding.scrollView3.scrollTo(0, 0)
+                    }
+                } catch (e: Exception) {
+                    println("Error scrolling to top: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            println("Error setting up navigation: ${e.message}")
         }
     }
 } 

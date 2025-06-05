@@ -98,6 +98,9 @@ class MainActivity : AppCompatActivity() {
         secureTokenStorage = SecureTokenStorage(this)
         setupNavigation()
 
+        // Generate monthly history if needed (check if it's end of month)
+        com.example.project1912.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
+
         // Ensure we start at the top of the screen
         binding.scrollView2.post {
             binding.scrollView2.scrollTo(0, 0)
@@ -1036,6 +1039,14 @@ class MainActivity : AppCompatActivity() {
                 // Save the income and expense values for this specific card
                 secureTokenStorage.saveIncomeForCard(cardId, "$formattedIncome lei")
                 secureTokenStorage.saveExpenseForCard(cardId, "$formattedExpense lei")
+
+                // Update monthly summaries with new income data
+                try {
+                    com.example.project1912.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this@MainActivity)
+                    println("Updated monthly summaries with new income data for card: $cardId")
+                } catch (e: Exception) {
+                    println("Error updating monthly summaries: ${e.message}")
+                }
 
                 // Update ReportActivity with the totals
                 withContext(Dispatchers.Main) {
