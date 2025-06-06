@@ -8,14 +8,16 @@ data class MonthlyHistoryDomain(
     val totalBalance: Double = 0.0,
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
-    val timestamp: Long = 0L // For sorting and identifying entries
+    val timestamp: Long = 0L, // For sorting and identifying entries
+    val isFinalized: Boolean = false // True when month has passed and data should no longer be updated
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readString().toString(),
         parcel.readDouble(),
         parcel.readDouble(),
         parcel.readDouble(),
-        parcel.readLong()
+        parcel.readLong(),
+        parcel.readByte() != 0.toByte()
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -24,6 +26,7 @@ data class MonthlyHistoryDomain(
         parcel.writeDouble(totalIncome)
         parcel.writeDouble(totalExpense)
         parcel.writeLong(timestamp)
+        parcel.writeByte(if (isFinalized) 1 else 0)
     }
 
     override fun describeContents(): Int {

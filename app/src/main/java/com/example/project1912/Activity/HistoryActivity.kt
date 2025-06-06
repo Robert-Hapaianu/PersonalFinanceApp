@@ -35,6 +35,9 @@ class HistoryActivity : AppCompatActivity() {
             // Generate monthly history if needed (check if it's the first day of the month)
             MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
             
+            // Check and log finalization status
+            MonthlyHistoryAdapter.checkFinalizationStatus(this)
+            
         } catch (e: Exception) {
             println("Error in HistoryActivity onCreate: ${e.message}")
             e.printStackTrace()
@@ -97,25 +100,8 @@ class HistoryActivity : AppCompatActivity() {
                 val currentMonthSummary = MonthlyHistoryAdapter.calculateCurrentMonthSummary(this)
                 monthlyHistoryAdapter.addItem(currentMonthSummary)
                 
-                // Also check if we need to update the previous month summary with latest income data
-                val calendar = java.util.Calendar.getInstance()
-                calendar.add(java.util.Calendar.MONTH, -1)
-                val previousMonthYear = java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(calendar.time)
-                val previousMonth = calendar.get(java.util.Calendar.MONTH)
-                val previousYear = calendar.get(java.util.Calendar.YEAR)
-                
-                // Update previous month summary if it exists
-                val savedHistory = MonthlyHistoryAdapter.loadSavedMonthlyHistory(this)
-                val existingPreviousEntry = savedHistory.find { it.monthYear == previousMonthYear }
-                
-                if (existingPreviousEntry != null) {
-                    // Recalculate previous month summary with updated income
-                    val updatedPreviousMonthSummary = MonthlyHistoryAdapter.calculatePreviousMonthSummary(
-                        this, previousMonth, previousYear, previousMonthYear
-                    )
-                    monthlyHistoryAdapter.addItem(updatedPreviousMonthSummary)
-                    println("Updated income for previous month: $previousMonthYear")
-                }
+                // No longer update previous months - they should remain finalized once created
+                println("Refreshed current month summary only - previous months remain finalized")
             }
         } catch (e: Exception) {
             println("Error refreshing current month summary: ${e.message}")

@@ -51,7 +51,12 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
             }
             
             if (existingIndex >= 0) {
-                // Update existing entry
+                val existingEntry = items[existingIndex]
+                
+                // Updates blocked for finalized months
+                if (existingEntry.isFinalized) return
+                
+                // Update existing entry (only if not finalized)
                 items[existingIndex] = monthlyHistory
                 notifyItemChanged(existingIndex)
             } else {
@@ -144,7 +149,8 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
                     totalBalance = totalBalance,
                     totalIncome = totalIncome,
                     totalExpense = totalExpense,
-                    timestamp = calendar.timeInMillis
+                    timestamp = calendar.timeInMillis,
+                    isFinalized = false // Current month is never finalized - can be updated
                 )
             } catch (e: Exception) {
                 println("Error calculating current month summary: ${e.message}")
@@ -157,24 +163,31 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
                     totalBalance = 0.0,
                     totalIncome = 0.0,
                     totalExpense = 0.0,
-                    timestamp = calendar.timeInMillis
+                    timestamp = calendar.timeInMillis,
+                    isFinalized = false
                 )
             }
         }
 
         private fun parseExpenseDate(timeString: String): Date? {
             return try {
-                // Try to parse the date format used in expenses (e.g., "14:30 • 15 Dec 2024")
-                val parts = timeString.split(" • ")
-                if (parts.size == 2) {
-                    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                    dateFormat.parse(parts[1])
-                } else {
+                // The expense time format is "HH:mm • dd MMM yyyy" (e.g., "14:30 • 15 Dec 2024")
+                val dateFormat = SimpleDateFormat("HH:mm • dd MMM yyyy", Locale.getDefault())
+                dateFormat.parse(timeString)
+            } catch (e: Exception) {
+                // Fallback: try parsing just the date part after the bullet
+                try {
+                    val parts = timeString.split(" • ")
+                    if (parts.size == 2) {
+                        val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                        dateFormat.parse(parts[1])
+                    } else {
+                        null
+                    }
+                } catch (e2: Exception) {
+                    println("Error parsing expense date: $timeString, ${e2.message}")
                     null
                 }
-            } catch (e: Exception) {
-                println("Error parsing expense date: $timeString, ${e.message}")
-                null
             }
         }
 
@@ -235,17 +248,27 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
                     val existingEntry = savedHistory.find { it.monthYear == previousMonthYear }
                     
                     if (existingEntry == null) {
-                        // Generate summary for the previous month
+                        // Generate FINALIZED summary for the previous month
                         val summary = calculatePreviousMonthSummary(context, previousMonth, previousYear, previousMonthYear)
+                        val finalizedSummary = summary.copy(isFinalized = true) // Mark as finalized
                         
                         // Create a temporary adapter to add the item
                         val tempAdapter = MonthlyHistoryAdapter(savedHistory)
                         tempAdapter.context = context
-                        tempAdapter.addItem(summary)
+                        tempAdapter.addItem(finalizedSummary)
                         
-                        println("Auto-generated monthly history for: $previousMonthYear")
+                        println("Auto-generated FINALIZED monthly history for: $previousMonthYear")
+                    } else if (!existingEntry.isFinalized) {
+                        // If entry exists but is not finalized, finalize it now
+                        val finalizedSummary = existingEntry.copy(isFinalized = true)
+                        
+                        val tempAdapter = MonthlyHistoryAdapter(savedHistory)
+                        tempAdapter.context = context
+                        tempAdapter.addItem(finalizedSummary)
+                        
+                        println("Finalized existing monthly history for: $previousMonthYear")
                     } else {
-                        println("Monthly history already exists for: $previousMonthYear")
+                        println("Monthly history already finalized for: $previousMonthYear")
                     }
                 } else {
                     println("Not the first day of month (day: $currentDayOfMonth), skipping auto-generation")
@@ -301,7 +324,8 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
                     totalBalance = totalBalance,
                     totalIncome = totalIncome,
                     totalExpense = totalExpense,
-                    timestamp = currentTime
+                    timestamp = currentTime,
+                    isFinalized = true // Previous months are always finalized
                 )
             } catch (e: Exception) {
                 println("Error calculating previous month summary for $monthYear: ${e.message}")
@@ -312,7 +336,8 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
                     totalBalance = 0.0,
                     totalIncome = 0.0,
                     totalExpense = 0.0,
-                    timestamp = System.currentTimeMillis()
+                    timestamp = System.currentTimeMillis(),
+                    isFinalized = true
                 )
             }
         }
@@ -348,6 +373,21 @@ class MonthlyHistoryAdapter(private val items: MutableList<MonthlyHistoryDomain>
             } catch (e: Exception) {
                 println("Error in test generation: ${e.message}")
                 e.printStackTrace()
+            }
+        }
+
+        // Helper method to check finalization status
+        fun checkFinalizationStatus(context: Context) {
+            try {
+                val savedHistory = loadSavedMonthlyHistory(context)
+                println("=== FINALIZATION STATUS ===")
+                savedHistory.forEach { entry ->
+                    val status = if (entry.isFinalized) "FINALIZED" else "LIVE"
+                    println("${entry.monthYear}: $status")
+                }
+                println("===========================")
+            } catch (e: Exception) {
+                println("Error checking finalization status: ${e.message}")
             }
         }
     }
