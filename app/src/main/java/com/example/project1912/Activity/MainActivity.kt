@@ -100,6 +100,9 @@ class MainActivity : AppCompatActivity() {
 
         // Generate monthly history if needed (check if it's end of month)
         com.example.project1912.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
+        
+        // Check and reset budget percentages if new month started
+        com.example.project1912.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
 
         // Ensure we start at the top of the screen
         binding.scrollView2.post {

@@ -35,6 +35,9 @@ class HistoryActivity : AppCompatActivity() {
             // Generate monthly history if needed (check if it's the first day of the month)
             MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
             
+            // Check and reset budget percentages if new month started
+            com.example.project1912.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
+            
             // Check and log finalization status
             MonthlyHistoryAdapter.checkFinalizationStatus(this)
             

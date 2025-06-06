@@ -217,6 +217,9 @@ class BudgetsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Check and reset budget percentages if new month started
+        com.example.project1912.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
+        
         // Refresh budget percentages when returning to this activity
         // This ensures the progress circles are updated if expenses were added/modified
         budgetAdapter.refreshBudgetPercentages()
