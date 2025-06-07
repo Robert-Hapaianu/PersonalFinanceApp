@@ -15,7 +15,7 @@ import com.example.project1912.databinding.ViewholderCardBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-class CardAdapter(private val cards: MutableList<CardDomain>, private val context: Context) :
+class CardAdapter(val cards: MutableList<CardDomain>, private val context: Context) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val PREFS_NAME = "CardPrefs"

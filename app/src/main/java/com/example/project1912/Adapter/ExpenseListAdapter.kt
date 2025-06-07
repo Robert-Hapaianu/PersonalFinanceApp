@@ -199,6 +199,12 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
         notifyItemInserted(0)
         saveExpenses() // Save immediately after adding the item
     }
+    
+    fun updateExpenseList(newExpenses: MutableList<ExpenseDomain>) {
+        items.clear()
+        items.addAll(newExpenses)
+        notifyDataSetChanged()
+    }
 
     fun removeTransactionsByCardId(cardId: String) {
         val iterator = items.iterator()

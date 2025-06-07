@@ -49,6 +49,15 @@ class SecureTokenStorage(context: Context) {
         return sharedPreferences.getString("account_id", null)
     }
 
+    // Card-specific account ID mapping
+    fun saveAccountIdForCard(cardId: String, accountId: String) {
+        sharedPreferences.edit().putString("account_id_$cardId", accountId).apply()
+    }
+
+    fun getAccountIdForCard(cardId: String): String? {
+        return sharedPreferences.getString("account_id_$cardId", null)
+    }
+
     fun saveBankBalance(cardId: String, balance: String) {
         sharedPreferences.edit().putString("bank_balance_$cardId", balance).apply()
     }

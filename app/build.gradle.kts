@@ -64,4 +64,7 @@ dependencies {
     //ViewModel
     implementation("androidx.activity:activity-ktx:1.4.0")
     implementation("com.github.bumptech.glide:glide:4.12.0")
+    
+    //WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 }

@@ -98,6 +98,9 @@ class MainActivity : AppCompatActivity() {
         secureTokenStorage = SecureTokenStorage(this)
         setupNavigation()
 
+        // Initialize daily refresh service
+        com.example.project1912.Services.DailyRefreshService.scheduleDailyRefresh(this)
+
         // Generate monthly history if needed (check if it's end of month)
         com.example.project1912.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
         
@@ -116,6 +119,10 @@ class MainActivity : AppCompatActivity() {
         binding.scrollView2.post {
             binding.scrollView2.scrollTo(0, 0)
         }
+        
+        // Refresh data from storage in case new transactions were added during background refresh
+        refreshCardBalancesFromStorage()
+        refreshExpenseListFromStorage()
     }
 
     private fun setupEditButtons() {
@@ -497,6 +504,44 @@ class MainActivity : AppCompatActivity() {
     fun removeTransactionsForCard(cardId: String) {
         expenseAdapter.removeTransactionsByCardId(cardId)
     }
+    
+    /**
+     * Refresh all card balances from secure storage and update UI
+     */
+    fun refreshCardBalancesFromStorage() {
+        for (i in 0 until cardAdapter.itemCount - 1) { // -1 because last item is Add Card button
+            try {
+                val card = cardAdapter.cards[i]
+                val savedBalance = secureTokenStorage.getBankBalance(card.cardNumber)
+                if (savedBalance != null) {
+                    // Parse the balance value from "XX.XX lei" format
+                    val balanceValue = savedBalance.replace(" lei", "").replace("lei", "").trim().toDoubleOrNull()
+                    if (balanceValue != null) {
+                        cardAdapter.updateCardBalance(card.cardNumber, balanceValue)
+                    }
+                }
+            } catch (e: Exception) {
+                println("Error refreshing balance for card at position $i: ${e.message}")
+            }
+        }
+        updateTotalBalance()
+    }
+    
+    /**
+     * Refresh expense list from storage
+     */
+    fun refreshExpenseListFromStorage() {
+        val savedExpenses = ExpenseListAdapter.loadSavedExpenses(this)
+        expenseAdapter.updateExpenseList(savedExpenses)
+    }
+    
+    /**
+     * Trigger manual refresh for testing purposes
+     */
+    fun triggerManualRefresh() {
+        com.example.project1912.Services.DailyRefreshService.triggerManualRefresh(this)
+        Toast.makeText(this, "Manual refresh triggered", Toast.LENGTH_SHORT).show()
+    }
 
     fun showAddCardDialog() {
         val layout = LinearLayout(this).apply {
@@ -794,7 +839,7 @@ class MainActivity : AppCompatActivity() {
                         delay(5000)
 
                         // Get the requisition details
-                        val requisitionDetails = getRequisitionDetails(accessToken, requisitionId)
+                        val requisitionDetails = getRequisitionDetails(accessToken, requisitionId, cardId)
                         if (requisitionDetails != null) {
                             // Get the account balance
                             getAccountBalance(accessToken, requisitionDetails, cardId)
@@ -825,7 +870,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun getRequisitionDetails(accessToken: String, requisitionId: String): String? {
+    private suspend fun getRequisitionDetails(accessToken: String, requisitionId: String, cardId: String): String? {
         var connection: HttpURLConnection? = null
         try {
             val url = URL("https://bankaccountdata.gocardless.com/api/v2/requisitions/$requisitionId/")
@@ -853,13 +898,15 @@ class MainActivity : AppCompatActivity() {
                     if (accountsArray.length() > 0) {
                         val accountId = accountsArray.getString(0)
                         secureTokenStorage.saveAccountId(accountId)
+                        // Save account ID for this specific card
+                        secureTokenStorage.saveAccountIdForCard(cardId, accountId)
                         return accountId
                     }
                 } else {
                     println("Waiting for requisition status to be LN. Current status: $status")
                     // Wait for 5 seconds before checking again
                     delay(5000)
-                    return getRequisitionDetails(accessToken, requisitionId)
+                    return getRequisitionDetails(accessToken, requisitionId, cardId)
                 }
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
