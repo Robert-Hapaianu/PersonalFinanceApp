@@ -617,7 +617,7 @@ class MainActivity : AppCompatActivity() {
             val adapter = ArrayAdapter(
                 this@MainActivity,
                 android.R.layout.simple_spinner_item,
-                arrayOf("BRD")
+                arrayOf("BRD", "ING", "Revolut")
             )
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             this.adapter = adapter
@@ -643,8 +643,8 @@ class MainActivity : AppCompatActivity() {
                     cardAdapter.addCard(newCard)
                     updateTotalBalance()
                     
-                    // Generate access token with the card ID
-                    generateAccessToken(newCard.cardNumber)
+                    // Generate access token with the card ID and selected bank
+                    generateAccessToken(newCard.cardNumber, bank)
                 } else {
                     Toast.makeText(this, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
                 }
@@ -656,7 +656,7 @@ class MainActivity : AppCompatActivity() {
         cardNumberEdit.requestFocus()
     }
 
-    private fun generateAccessToken(cardId: String) {
+    private fun generateAccessToken(cardId: String, selectedBank: String) {
         CoroutineScope(Dispatchers.IO).launch {
             var connection: HttpURLConnection? = null
             try {
@@ -669,8 +669,8 @@ class MainActivity : AppCompatActivity() {
                 connection.readTimeout = 15000
 
                 val requestBody = JSONObject().apply {
-                    put("secret_id", "7d4b9dc9-7d40-48b8-85c2-b3c0371d85ff")
-                    put("secret_key", "8f289965b85183a5d5dc1357595f7e3ef0fb43bc55cb823acdad633084193c3439651adbbff7411b4473a6bb84188f2f44584107d2818177fa16c0ebce6105b6")
+                    put("secret_id", "3dee5640-1723-470d-b4d7-166481adaecd")
+                    put("secret_key", "6479767f4605a06ea0a9540119615443cdc576154c0b92c7117a67d92922fe225d4fc4bf7a4d07ac24b5db8e9e0e3e8e832a3e979c5088e385141f5056b2e63c")
                 }.toString()
 
                 println("Request Body: $requestBody")
@@ -695,7 +695,7 @@ class MainActivity : AppCompatActivity() {
                     secureTokenStorage.saveRefreshToken(refreshToken)
                     
                     // Create requisition after getting the access token
-                    createRequisition(accessToken, cardId)
+                    createRequisition(accessToken, cardId, selectedBank)
                 } else {
                     val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
                     println("Token Error Response: $errorResponse")
@@ -715,7 +715,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createRequisition(accessToken: String, cardId: String) {
+    private fun createRequisition(accessToken: String, cardId: String, selectedBank: String) {
         CoroutineScope(Dispatchers.IO).launch {
             var connection: HttpURLConnection? = null
             try {
@@ -729,9 +729,17 @@ class MainActivity : AppCompatActivity() {
                 connection.connectTimeout = 15000
                 connection.readTimeout = 15000
 
+                // Map selected bank to institution ID
+                val institutionId = when (selectedBank) {
+                    "BRD" -> "BRD_GROUPE_SOCIETE_GENERALE_RO_BRDEROBU"
+                    "ING" -> "ING_INGBROBU"
+                    "Revolut" -> "REVOLUT_REVOLT21"
+                    else -> "BRD_GROUPE_SOCIETE_GENERALE_RO_BRDEROBU" // Default to BRD
+                }
+
                 val requestBody = JSONObject().apply {
                     put("redirect", "myapp://callback")
-                    put("institution_id", "BRD_GROUPE_SOCIETE_GENERALE_RO_BRDEROBU")
+                    put("institution_id", institutionId)
                     put("reference", java.util.UUID.randomUUID().toString())
                 }.toString()
 
