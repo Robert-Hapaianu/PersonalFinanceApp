@@ -1,31 +1,29 @@
-package com.example.project1912.Adapter
+package com.example.personalfinanceapp.Adapter
 
 import android.content.Context
 import android.icu.text.DecimalFormat
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.project1912.Domain.BudgetDomain
-import com.example.project1912.Domain.ExpenseDomain
-import com.example.project1912.R
-import com.example.project1912.databinding.ViewholderBudgetBinding
+import com.example.personalfinanceapp.Domain.BudgetDomain
+import com.example.personalfinanceapp.Domain.ExpenseDomain
+import com.example.personalfinanceapp.R
+import com.example.personalfinanceapp.databinding.ViewholderBudgetBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ReportListAdapter(private val items: MutableList<BudgetDomain>) :
+class ReportListAdapter(private val items: MutableList<BudgetDomain>, private val context: Context) :
     RecyclerView.Adapter<ReportListAdapter.Viewholder>() {
     class Viewholder(val binding: ViewholderBudgetBinding) : RecyclerView.ViewHolder(binding.root)
 
-    private lateinit var context: Context
     var formatter: DecimalFormat? = null
     
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
     ): ReportListAdapter.Viewholder {
-        context = parent.context
         formatter = DecimalFormat("###,###,###,###")
         val binding = ViewholderBudgetBinding.inflate(LayoutInflater.from(context), parent, false)
         return Viewholder(binding)

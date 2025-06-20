@@ -1,4 +1,4 @@
-package com.example.project1912.Adapter
+package com.example.personalfinanceapp.Adapter
 
 import android.app.AlertDialog
 import android.content.Context
@@ -12,24 +12,22 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.project1912.Domain.ExpenseDomain
-import com.example.project1912.databinding.ViewholderItemsBinding
+import com.example.personalfinanceapp.Domain.ExpenseDomain
+import com.example.personalfinanceapp.databinding.ViewholderItemsBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
+class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>, private val context: Context) :
     RecyclerView.Adapter<ExpenseListAdapter.Viewholder>() {
 
     class Viewholder(val binding: ViewholderItemsBinding) : RecyclerView.ViewHolder(binding.root)
 
-    private lateinit var context: Context
     var formatter: DecimalFormat? = null
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
     ): ExpenseListAdapter.Viewholder {
-        context = parent.context
         formatter = DecimalFormat("###,###,###.##")
         val binding = ViewholderItemsBinding.inflate(LayoutInflater.from(context), parent, false)
         return Viewholder(binding)
@@ -73,7 +71,7 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
 
         val activityLabel = TextView(context).apply {
             text = "Activity"
-            setTextColor(ContextCompat.getColor(context, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(context, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -95,7 +93,7 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
 
         val priceLabel = TextView(context).apply {
             text = "Price"
-            setTextColor(ContextCompat.getColor(context, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(context, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -119,14 +117,14 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
 
         val budgetLabel = TextView(context).apply {
             text = "Budget"
-            setTextColor(ContextCompat.getColor(context, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(context, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
         layout.addView(budgetLabel)
 
         // Load saved budgets
-        val savedBudgets = com.example.project1912.Adapter.ReportListAdapter.loadSavedBudgets(context)
+        val savedBudgets = com.example.personalfinanceapp.Adapter.ReportListAdapter.loadSavedBudgets(context)
         val budgetTitles = mutableListOf("No Budget")
         budgetTitles.addAll(savedBudgets.map { it.title })
 
@@ -316,7 +314,7 @@ class ExpenseListAdapter(private val items: MutableList<ExpenseDomain>) :
             val mappedBudget = getBudgetMapping(context, transactionTitle)
             if (mappedBudget != null) {
                 // Verify the budget still exists
-                val savedBudgets = com.example.project1912.Adapter.ReportListAdapter.loadSavedBudgets(context)
+                val savedBudgets = com.example.personalfinanceapp.Adapter.ReportListAdapter.loadSavedBudgets(context)
                 val budgetExists = savedBudgets.any { it.title == mappedBudget }
                 
                 if (budgetExists) {

@@ -1,4 +1,4 @@
-package com.example.project1912.Utils
+package com.example.personalfinanceapp.Utils
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences

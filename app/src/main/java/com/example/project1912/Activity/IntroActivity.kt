@@ -1,10 +1,10 @@
-package com.example.project1912.Activity
+package com.example.personalfinanceapp.Activity
 
 import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import com.example.project1912.databinding.ActivityIntroBinding
+import com.example.personalfinanceapp.databinding.ActivityIntroBinding
 
 class IntroActivity : AppCompatActivity() {
     lateinit var binding: ActivityIntroBinding

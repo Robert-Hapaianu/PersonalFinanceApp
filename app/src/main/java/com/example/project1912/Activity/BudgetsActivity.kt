@@ -1,4 +1,4 @@
-package com.example.project1912.Activity
+package com.example.personalfinanceapp.Activity
 
 import android.app.AlertDialog
 import android.content.Intent
@@ -18,10 +18,10 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.project1912.Adapter.ReportListAdapter
-import com.example.project1912.Domain.BudgetDomain
-import com.example.project1912.ViewModel.MainViewModel
-import com.example.project1912.databinding.ActivityBudgetsBinding
+import com.example.personalfinanceapp.Adapter.ReportListAdapter
+import com.example.personalfinanceapp.Domain.BudgetDomain
+import com.example.personalfinanceapp.ViewModel.MainViewModel
+import com.example.personalfinanceapp.databinding.ActivityBudgetsBinding
 
 class BudgetsActivity : AppCompatActivity() {
     lateinit var binding: ActivityBudgetsBinding
@@ -51,13 +51,9 @@ class BudgetsActivity : AppCompatActivity() {
     private fun initRecyclerview() {
         binding.view2.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         
-        // Load saved budgets or use default data if none exists
+        // Load saved budgets or start with empty list for fresh installation
         val savedBudgets = ReportListAdapter.loadSavedBudgets(this)
-        budgetAdapter = if (savedBudgets.isNotEmpty()) {
-            ReportListAdapter(savedBudgets)
-        } else {
-            ReportListAdapter(mainViewModel.loadBudget())
-        }
+        budgetAdapter = ReportListAdapter(savedBudgets, this)
         
         binding.view2.adapter = budgetAdapter
         binding.view2.isNestedScrollingEnabled = false
@@ -131,7 +127,7 @@ class BudgetsActivity : AppCompatActivity() {
 
         val titleLabel = TextView(this).apply {
             text = "Budget Title"
-            setTextColor(ContextCompat.getColor(this@BudgetsActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@BudgetsActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -152,7 +148,7 @@ class BudgetsActivity : AppCompatActivity() {
 
         val amountLabel = TextView(this).apply {
             text = "Monthly Amount (lei)"
-            setTextColor(ContextCompat.getColor(this@BudgetsActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@BudgetsActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -218,7 +214,7 @@ class BudgetsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Check and reset budget percentages if new month started
-        com.example.project1912.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
+        com.example.personalfinanceapp.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
         
         // Refresh budget percentages when returning to this activity
         // This ensures the progress circles are updated if expenses were added/modified

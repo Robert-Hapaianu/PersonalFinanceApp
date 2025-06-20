@@ -1,8 +1,8 @@
-package com.example.project1912.Activity
+package com.example.personalfinanceapp.Activity
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.example.project1912.Utils.SecureTokenStorage
+import com.example.personalfinanceapp.Utils.SecureTokenStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

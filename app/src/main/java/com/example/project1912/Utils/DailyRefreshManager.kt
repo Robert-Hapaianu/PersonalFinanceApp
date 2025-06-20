@@ -1,4 +1,4 @@
-package com.example.project1912.Utils
+package com.example.personalfinanceapp.Utils
 
 import android.content.Context
 import android.widget.Toast
@@ -9,9 +9,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import com.example.project1912.Adapter.CardAdapter
-import com.example.project1912.Adapter.ExpenseListAdapter
-import com.example.project1912.Domain.ExpenseDomain
+import com.example.personalfinanceapp.Adapter.CardAdapter
+import com.example.personalfinanceapp.Adapter.ExpenseListAdapter
+import com.example.personalfinanceapp.Domain.ExpenseDomain
 import java.util.*
 
 class DailyRefreshManager(private val context: Context) {
@@ -59,7 +59,7 @@ class DailyRefreshManager(private val context: Context) {
                 withContext(Dispatchers.Main) {
                     try {
                         // Try to update UI if MainActivity is available
-                        val activity = context as? com.example.project1912.Activity.MainActivity
+                        val activity = context as? com.example.personalfinanceapp.Activity.MainActivity
                         activity?.refreshCardBalancesFromStorage()
                         activity?.refreshExpenseListFromStorage()
                         println("UI updated with refreshed balances and transactions")
@@ -286,8 +286,8 @@ class DailyRefreshManager(private val context: Context) {
                                         budget = autoAssignedBudget
                                     )
                                     
-                                    // Add to existing expenses list and save
-                                    existingExpenses.add(newExpense)
+                                    // Add to existing expenses list at the beginning (same as addItem behavior)
+                                    existingExpenses.add(0, newExpense)
                                     newTransactionCount++
                                     
                                     println("Added new transaction: $creditorName, Amount: ${-amount}, Date: $formattedDate")

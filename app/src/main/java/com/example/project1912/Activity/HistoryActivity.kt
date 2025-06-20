@@ -1,4 +1,4 @@
-package com.example.project1912.Activity
+package com.example.personalfinanceapp.Activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,9 +7,9 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.project1912.Adapter.MonthlyHistoryAdapter
-import com.example.project1912.ViewModel.MainViewModel
-import com.example.project1912.databinding.ActivityHistoryBinding
+import com.example.personalfinanceapp.Adapter.MonthlyHistoryAdapter
+import com.example.personalfinanceapp.ViewModel.MainViewModel
+import com.example.personalfinanceapp.databinding.ActivityHistoryBinding
 
 class HistoryActivity : AppCompatActivity() {
     lateinit var binding: ActivityHistoryBinding
@@ -36,7 +36,7 @@ class HistoryActivity : AppCompatActivity() {
             MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
             
             // Check and reset budget percentages if new month started
-            com.example.project1912.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
+            com.example.personalfinanceapp.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
             
             // Check and log finalization status
             MonthlyHistoryAdapter.checkFinalizationStatus(this)

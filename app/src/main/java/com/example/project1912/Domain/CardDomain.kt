@@ -1,4 +1,4 @@
-package com.example.project1912.Domain
+package com.example.personalfinanceapp.Domain
 
 import android.os.Parcel
 import android.os.Parcelable

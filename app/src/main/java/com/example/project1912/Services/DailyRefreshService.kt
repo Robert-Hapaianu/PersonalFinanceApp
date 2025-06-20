@@ -1,10 +1,10 @@
-package com.example.project1912.Services
+package com.example.personalfinanceapp.Services
 
 import android.content.Context
 import androidx.work.*
 import java.util.concurrent.TimeUnit
 import java.util.*
-import com.example.project1912.Utils.DailyRefreshManager
+import com.example.personalfinanceapp.Utils.DailyRefreshManager
 
 class DailyRefreshWorker(context: Context, workerParams: WorkerParameters) : CoroutineWorker(context, workerParams) {
     

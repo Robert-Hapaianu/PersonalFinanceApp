@@ -1,7 +1,7 @@
-package com.example.project1912.ViewModel
+package com.example.personalfinanceapp.ViewModel
 
 import androidx.lifecycle.ViewModel
-import com.example.project1912.Repository.MainRepository
+import com.example.personalfinanceapp.Repository.MainRepository
 
 class MainViewModel(val repository: MainRepository) : ViewModel() {
     constructor() : this(MainRepository())

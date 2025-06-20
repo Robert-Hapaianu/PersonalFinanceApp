@@ -1,4 +1,4 @@
-package com.example.project1912.Activity
+package com.example.personalfinanceapp.Activity
 
 import android.Manifest
 import android.app.AlertDialog
@@ -29,13 +29,13 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.project1912.Adapter.CardAdapter
-import com.example.project1912.Adapter.ExpenseListAdapter
-import com.example.project1912.Domain.CardDomain
-import com.example.project1912.Domain.ExpenseDomain
-import com.example.project1912.Utils.SecureTokenStorage
-import com.example.project1912.ViewModel.MainViewModel
-import com.example.project1912.databinding.ActivityMainBinding
+import com.example.personalfinanceapp.Adapter.CardAdapter
+import com.example.personalfinanceapp.Adapter.ExpenseListAdapter
+import com.example.personalfinanceapp.Domain.CardDomain
+import com.example.personalfinanceapp.Domain.ExpenseDomain
+import com.example.personalfinanceapp.Utils.SecureTokenStorage
+import com.example.personalfinanceapp.ViewModel.MainViewModel
+import com.example.personalfinanceapp.databinding.ActivityMainBinding
 import eightbitlab.com.blurview.RenderScriptBlur
 import android.widget.ArrayAdapter
 import android.text.Editable
@@ -56,16 +56,14 @@ class MainActivity : AppCompatActivity() {
     private val PROFILE_IMAGE_URI = "profile_image_uri"
     private val USER_NAME = "user_name"
     private val USER_EMAIL = "user_email"
+    
+    // Bank API credentials
+    private val SECRET_ID = "ccc55b09-1b27-4d68-b908-f273f1f13e45"
+    private val SECRET_KEY = "c925e31a34fb1f2a12523feb6ed30b22b1a291602d92dfe909e2fcfeadc2276a072e866c975a6dce8fdea2ea72093d530329e2da015f6cfeb97ad7ecc1b1caf9"
+    
     private lateinit var expenseAdapter: ExpenseListAdapter
     private lateinit var cardAdapter: CardAdapter
-    private val cards = mutableListOf(
-        CardDomain(
-            cardNumber = "1234 5678 9012 3456",
-            expiryDate = "03/07",
-            cardType = "visa",
-            balance = 23451.58
-        )
-    )
+    private val cards = mutableListOf<CardDomain>()
     private lateinit var secureTokenStorage: SecureTokenStorage
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -99,13 +97,13 @@ class MainActivity : AppCompatActivity() {
         setupNavigation()
 
         // Initialize daily refresh service
-        com.example.project1912.Services.DailyRefreshService.scheduleDailyRefresh(this)
+        com.example.personalfinanceapp.Services.DailyRefreshService.scheduleDailyRefresh(this)
 
         // Generate monthly history if needed (check if it's end of month)
-        com.example.project1912.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
+        com.example.personalfinanceapp.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this)
         
         // Check and reset budget percentages if new month started
-        com.example.project1912.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
+        com.example.personalfinanceapp.Adapter.ReportListAdapter.checkAndResetBudgetsIfNeeded(this)
 
         // Ensure we start at the top of the screen
         binding.scrollView2.post {
@@ -205,7 +203,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 // If there's any error loading the saved image, revert to default
-                binding.profileImageView.setImageResource(com.example.project1912.R.drawable.men)
+                binding.profileImageView.setImageResource(com.example.personalfinanceapp.R.drawable.men)
                 // Clear the invalid URI from SharedPreferences
                 saveProfileImageUri("")
             }
@@ -283,13 +281,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun initRecyclerview() {
         binding.view1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        // Load saved expenses or use default data if none exists
+        // Load saved expenses or start with empty list for fresh installation
         val savedExpenses = ExpenseListAdapter.loadSavedExpenses(this)
-        expenseAdapter = if (savedExpenses.isNotEmpty()) {
-            ExpenseListAdapter(savedExpenses)
-        } else {
-            ExpenseListAdapter(mainViewModel.loadData())
-        }
+        expenseAdapter = ExpenseListAdapter(savedExpenses, this)
         binding.view1.adapter = expenseAdapter
         binding.view1.isNestedScrollingEnabled = true // Enable nested scrolling
 
@@ -364,7 +358,7 @@ class MainActivity : AppCompatActivity() {
 
         val activityLabel = TextView(this).apply {
             text = "Activity"
-            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -385,7 +379,7 @@ class MainActivity : AppCompatActivity() {
 
         val priceLabel = TextView(this).apply {
             text = "Price"
-            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -408,14 +402,14 @@ class MainActivity : AppCompatActivity() {
 
         val budgetLabel = TextView(this).apply {
             text = "Budget"
-            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
         layout.addView(budgetLabel)
 
         // Load saved budgets
-        val savedBudgets = com.example.project1912.Adapter.ReportListAdapter.loadSavedBudgets(this)
+        val savedBudgets = com.example.personalfinanceapp.Adapter.ReportListAdapter.loadSavedBudgets(this)
         val budgetTitles = mutableListOf("No Budget")
         budgetTitles.addAll(savedBudgets.map { it.title })
 
@@ -539,7 +533,7 @@ class MainActivity : AppCompatActivity() {
      * Trigger manual refresh for testing purposes
      */
     fun triggerManualRefresh() {
-        com.example.project1912.Services.DailyRefreshService.triggerManualRefresh(this)
+        com.example.personalfinanceapp.Services.DailyRefreshService.triggerManualRefresh(this)
         Toast.makeText(this, "Manual refresh triggered", Toast.LENGTH_SHORT).show()
     }
 
@@ -551,7 +545,7 @@ class MainActivity : AppCompatActivity() {
 
         val cardNumberLabel = TextView(this).apply {
             text = "Card Number"
-            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -602,7 +596,7 @@ class MainActivity : AppCompatActivity() {
 
         val expiryLabel = TextView(this).apply {
             text = "Expiry Date (MM/YY)"
-            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -652,7 +646,7 @@ class MainActivity : AppCompatActivity() {
 
         val bankLabel = TextView(this).apply {
             text = "Bank"
-            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.project1912.R.color.darkblue))
+            setTextColor(ContextCompat.getColor(this@MainActivity, com.example.personalfinanceapp.R.color.darkblue))
             textSize = 16f
             setPadding(0, 0, 0, 8)
         }
@@ -714,8 +708,8 @@ class MainActivity : AppCompatActivity() {
                 connection.readTimeout = 15000
 
                 val requestBody = JSONObject().apply {
-                    put("secret_id", "3dee5640-1723-470d-b4d7-166481adaecd")
-                    put("secret_key", "6479767f4605a06ea0a9540119615443cdc576154c0b92c7117a67d92922fe225d4fc4bf7a4d07ac24b5db8e9e0e3e8e832a3e979c5088e385141f5056b2e63c")
+                    put("secret_id", SECRET_ID)
+                    put("secret_key", SECRET_KEY)
                 }.toString()
 
                 println("Request Body: $requestBody")
@@ -1048,21 +1042,52 @@ class MainActivity : AppCompatActivity() {
                                 println("Added to expense: ${-amount}, New total expense: $totalExpense")
                             }
 
-                            // Only display transactions with creditorName (expenses) in the transaction list
-                            if (transaction.has("creditorName")) {
-                                val creditorName = transaction.getString("creditorName")
-                                println("Processing transaction for display: $creditorName, Amount: $amount, Date: $bookingDate")
+                            // Display expense transactions (negative amounts) in the transaction list
+                            if (amount < 0) { // This is an expense transaction
+                                var transactionName = ""
+                                
+                                // Try to get transaction name from different fields
+                                when {
+                                    transaction.has("creditorName") -> {
+                                        transactionName = transaction.getString("creditorName")
+                                        println("Processing expense with creditorName: $transactionName, Amount: $amount, Date: $bookingDate")
+                                    }
+                                    transaction.has("remittanceInformationUnstructured") -> {
+                                        val remittanceInfo = transaction.getString("remittanceInformationUnstructured")
+                                        // Extract merchant name after "Transaction at,"
+                                        val transactionAtIndex = remittanceInfo.indexOf("Transaction at,")
+                                        if (transactionAtIndex != -1) {
+                                            val afterTransactionAt = remittanceInfo.substring(transactionAtIndex + "Transaction at,".length).trim()
+                                            // Get everything until the next comma or until the end
+                                            val commaIndex = afterTransactionAt.indexOf(',')
+                                            transactionName = if (commaIndex != -1) {
+                                                afterTransactionAt.substring(0, commaIndex).trim()
+                                            } else {
+                                                afterTransactionAt.trim()
+                                            }
+                                        }
+                                        
+                                        if (transactionName.isEmpty()) {
+                                            transactionName = "Expense" // Fallback if parsing fails
+                                        }
+                                        println("Processing expense with remittanceInfo: $transactionName, Amount: $amount, Date: $bookingDate")
+                                    }
+                                    else -> {
+                                        transactionName = "Expense" // Fallback for expenses without clear identification
+                                        println("Processing expense with fallback name: $transactionName, Amount: $amount, Date: $bookingDate")
+                                    }
+                                }
 
                                 // Format the date for display
                                 val displayDateFormat = java.text.SimpleDateFormat("HH:mm • dd MMM yyyy", java.util.Locale.getDefault())
                                 val formattedDate = displayDateFormat.format(date)
 
-                                // Auto-assign budget based on creditor name
-                                val autoAssignedBudget = ExpenseListAdapter.autoAssignBudget(this@MainActivity, creditorName)
+                                // Auto-assign budget based on transaction name
+                                val autoAssignedBudget = ExpenseListAdapter.autoAssignBudget(this@MainActivity, transactionName)
 
-                                // Create and add the expense (only for negative amounts/creditor transactions)
+                                // Create and add the expense
                                 val newExpense = ExpenseDomain(
-                                    title = creditorName,
+                                    title = transactionName,
                                     price = -amount, // Convert negative to positive for display
                                     pic = "btn_1", // Use btn_1.png image for all transactions
                                     time = formattedDate,
@@ -1074,7 +1099,7 @@ class MainActivity : AppCompatActivity() {
                                     expenseAdapter.addItem(newExpense)
                                 }
                             } else {
-                                // Income transaction - count for totals but don't display
+                                // Income transaction - count for totals but don't display in expenses list
                                 val debtorName = if (transaction.has("debtorName")) transaction.getString("debtorName") else "Income"
                                 println("Income transaction (not displayed): $debtorName, Amount: $amount, Date: $bookingDate")
                             }
@@ -1100,7 +1125,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Update monthly summaries with new income data
                 try {
-                    com.example.project1912.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this@MainActivity)
+                    com.example.personalfinanceapp.Adapter.MonthlyHistoryAdapter.generateMonthlyHistoryIfNeeded(this@MainActivity)
                     println("Updated monthly summaries with new income data for card: $cardId")
                 } catch (e: Exception) {
                     println("Error updating monthly summaries: ${e.message}")

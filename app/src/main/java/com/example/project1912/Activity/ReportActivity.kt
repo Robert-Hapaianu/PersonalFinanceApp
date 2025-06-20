@@ -1,11 +1,11 @@
-package com.example.project1912.Activity
+package com.example.personalfinanceapp.Activity
 
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import com.example.project1912.databinding.ActivityReportBinding
-import com.example.project1912.Utils.SecureTokenStorage
+import com.example.personalfinanceapp.databinding.ActivityReportBinding
+import com.example.personalfinanceapp.Utils.SecureTokenStorage
 
 class ReportActivity : AppCompatActivity() {
     lateinit var binding: ActivityReportBinding

@@ -1,4 +1,4 @@
-package com.example.project1912.Adapter
+package com.example.personalfinanceapp.Adapter
 
 import android.content.Context
 import android.content.Intent
@@ -7,11 +7,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.project1912.Activity.MainActivity
-import com.example.project1912.Activity.ReportActivity
-import com.example.project1912.Domain.CardDomain
-import com.example.project1912.R
-import com.example.project1912.databinding.ViewholderCardBinding
+import com.example.personalfinanceapp.Activity.MainActivity
+import com.example.personalfinanceapp.Activity.ReportActivity
+import com.example.personalfinanceapp.Domain.CardDomain
+import com.example.personalfinanceapp.R
+import com.example.personalfinanceapp.databinding.ViewholderCardBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -35,14 +35,7 @@ class CardAdapter(val cards: MutableList<CardDomain>, private val context: Conte
                 val type = object : TypeToken<MutableList<CardDomain>>() {}.type
                 gson.fromJson(json, type)
             } else {
-                mutableListOf(
-                    CardDomain(
-                        cardNumber = "1234 5678 9012 3456",
-                        expiryDate = "03/07",
-                        cardType = "visa",
-                        balance = 23451.58
-                    )
-                )
+                mutableListOf<CardDomain>()
             }
         }
     }

@@ -1,7 +1,7 @@
-package com.example.project1912.Repository
+package com.example.personalfinanceapp.Repository
 
-import com.example.project1912.Domain.BudgetDomain
-import com.example.project1912.Domain.ExpenseDomain
+import com.example.personalfinanceapp.Domain.BudgetDomain
+import com.example.personalfinanceapp.Domain.ExpenseDomain
 
 class MainRepository {
     val items= mutableListOf(
